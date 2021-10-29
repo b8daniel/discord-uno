@@ -1,0 +1,44 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// migrate using npx prisma migrate dev --preview-feature --name "uno-config" --skip-generate
+// for types in code use npx prisma generate
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Guild {
+  guildId     String    @unique
+  adminRole   String?
+  unoConfig   UnoConfig @relation(fields: [unoConfigId], references: [id])
+  unoConfigId Int       @unique
+}
+
+model User {
+  id         Int      @id @default(autoincrement())
+  userId     String   @unique
+  unoStats   UnoStats @relation(fields: [unoStatsId], references: [id])
+  unoStatsId Int      @unique
+}
+
+model UnoStats {
+  User        User?
+  id          Int   @id @default(autoincrement())
+  unoPoints   Int   @default(0)
+  playedGames Int   @default(0)
+  wonGames    Int   @default(0)
+  cardsPlayed Int   @default(0)
+  cardsDrawn  Int   @default(0)
+}
+
+model UnoConfig {
+  id           Int     @id @default(autoincrement())
+  matchRoleId  String?
+  unoChannelId String?
+  Guild        Guild?
+}

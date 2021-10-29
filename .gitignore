@@ -1,0 +1,6 @@
+config.json
+node_modules
+.env
+config.ts
+config.js
+.vscode

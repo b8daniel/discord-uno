@@ -1,0 +1,22 @@
+{
+  "name": "discord-uno",
+  "version": "1.0.0",
+  "description": "A discord bot to play uno with friends",
+  "main": "src/build/index.js",
+  "scripts": {
+    "dev": "npx tsc"
+  },
+  "author": "BlxckOxymoron",
+  "license": "ISC",
+  "dependencies": {
+    "@discordjs/builders": "^0.7.0",
+    "@discordjs/rest": "^0.1.0-canary.0",
+    "@prisma/client": "^3.3.0",
+    "discord-api-types": "^0.24.0",
+    "discord.js": "^13.2.0",
+    "dotenv": "^10.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^4.4.4"
+  }
+}

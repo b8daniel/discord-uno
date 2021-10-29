@@ -1,0 +1,13 @@
+{
+  "include": [
+    "src/**/*"
+  ],
+  "compilerOptions": {
+    "outDir": "src/build",
+    "watch": true,
+    "target": "esnext",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "experimentalDecorators": true
+  },
+}
