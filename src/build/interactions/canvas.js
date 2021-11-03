@@ -14,7 +14,7 @@ class CanvasCommand {
     onCommand(interaction) {
         switch (interaction.options.getSubcommand()) {
             case "overview": {
-                interaction.reply({
+                interaction.editReply({
                     files: [
                         new discord_js_1.MessageAttachment((0, images_1.generateOverview)({
                             playedCards: [
@@ -52,7 +52,7 @@ class CanvasCommand {
                 });
             }
             case "cards": {
-                interaction.reply({
+                interaction.editReply({
                     files: [
                         new discord_js_1.MessageAttachment((0, images_1.generateCards)([
                             {
@@ -74,7 +74,7 @@ class CanvasCommand {
     }
 }
 __decorate([
-    (0, interactions_1.interactionListener)("canvas", "APPLICATION_COMMAND")
+    (0, interactions_1.interactionListener)("canvas", "APPLICATION_COMMAND", true)
 ], CanvasCommand.prototype, "onCommand", null);
 __decorate([
     (0, interactions_1.commandStorage)()

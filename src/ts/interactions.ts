@@ -61,7 +61,14 @@ export async function handleInteraction(interaction: Interaction) {
 
       await Promise.all(
         listeners.filter(i => i.name === interaction.commandName && i.accepts.includes("APPLICATION_COMMAND"))
-          .map(async i => await i.listener(interaction))
+          .map(async i => {
+            if (i.slow) {
+              await interaction.deferReply();
+              setTimeout(() => i.listener(interaction), 3500);
+            } else {
+              await i.listener(interaction);
+            }
+          })
       );
 
       break;
@@ -72,7 +79,14 @@ export async function handleInteraction(interaction: Interaction) {
 
       await Promise.all(
         listeners.filter(i => i.name === interaction.customId && i.accepts.includes("MESSAGE_COMPONENT"))
-          .map(async i => await i.listener(interaction))
+          .map(async i => {
+            if (i.slow) {
+              await interaction.deferReply();
+              setTimeout(() => i.listener(interaction), 3500);
+            } else {
+              await i.listener(interaction);
+            }
+          })
       );
 
       break;
@@ -111,13 +125,14 @@ export async function loadInteractions(folderPath: string = "src/build/interacti
 }
 
 //* DECORATORS
-export function interactionListener(interName: string, ...accepts: InteractionType[]): MethodDecorator {
+export function interactionListener(interName: string, accepts?: InteractionType, slow?: boolean): MethodDecorator {
   return (obj, symbol, _descriptor) => {
 
     listeners.push({
       name: interName,
-      accepts: accepts.length > 0 ? accepts : ["APPLICATION_COMMAND", "MESSAGE_COMPONENT"],
+      accepts: accepts ? [accepts] : ["APPLICATION_COMMAND", "MESSAGE_COMPONENT"],
       listener: obj[symbol],
+      slow,
     });
   };
 }

@@ -5,11 +5,11 @@ import { commandStorage, interactionListener } from "../interactions";
 
 export default class CanvasCommand {
 
-  @interactionListener("canvas", "APPLICATION_COMMAND")
+  @interactionListener("canvas", "APPLICATION_COMMAND", true)
   onCommand(interaction: CommandInteraction) {
     switch (interaction.options.getSubcommand()) {
       case "overview": {
-        interaction.reply({
+        interaction.editReply({
           files: [
             new MessageAttachment(generateOverview({
               playedCards: [
@@ -47,7 +47,7 @@ export default class CanvasCommand {
         });
       }
       case "cards": {
-        interaction.reply({
+        interaction.editReply({
           files: [
             new MessageAttachment(generateCards([
               {
