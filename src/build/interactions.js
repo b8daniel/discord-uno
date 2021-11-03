@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.commandStorage = exports.interactionListener = exports.loadInteractions = exports.handleInteraction = exports.givePermissionsToAdmin = exports.setAdminRole = exports.registerCommands = void 0;
+exports.commandStorage = exports.interactionListener = exports.loadInteractions = exports.handleInteraction = exports.registerCommands = void 0;
 const rest_1 = require("@discordjs/rest");
 const v9_1 = require("discord-api-types/v9");
 const config_1 = require("./config");
@@ -15,34 +15,32 @@ async function registerCommands(statusMessage = true) {
     const guilds = (0, guild_1.getGuildCache)();
     if (guilds.length === 0)
         console.warn("! Couldn't find any guilds from the db in the cache! Are they beeing cached before?");
+    /*
     //* GUILD COMMANDS
-    await Promise.all(guilds.map(async (guild) => {
+    await Promise.all(
+      guilds.map(async (guild: DBGuild) => {
         console.log(guild.guildId);
-        const response = await rest.put(v9_1.Routes.applicationGuildCommands(config_1.clientId, guild.guildId), { body: commands.filter(cmd => !cmd.global).map(cmd => cmd.builder.toJSON()) });
+        const response = await rest.put(Routes.applicationGuildCommands(clientId, guild.guildId), { body: commands.filter(cmd => !cmd.global).map(cmd => cmd.builder.toJSON()) });
         console.log(response);
-        ;
-        response.forEach(cmd => commands.find(cmd1 => cmd1.builder.name === cmd.name).commandIds.push({
-            guildId: guild.guildId,
-            id: cmd.id
+        ; (response as ApplicationCommandResponse[]).forEach(cmd => commands.find(cmd1 => cmd1.builder.name === cmd.name).commandIds.push({
+          guildId: guild.guildId,
+          id: cmd.id
         }));
-    })).catch(err => {
-        console.error("Error with guild command registration: \n", err);
+        console.log(commands);
+      })
+    ).catch(err => {
+      console.error("Error with guild command registration: \n", err);
     });
+    */
     //* GLOBAL COMMANDS
     await rest.put(process.env.NODE_ENV === "DEV" ?
-        v9_1.Routes.applicationGuildCommands(config_1.clientId, config_1.devServerId) : v9_1.Routes.applicationCommands(config_1.clientId), { body: commands.filter(cmd => cmd.global).map(cmd => cmd.builder.toJSON()) }).catch(err => {
+        v9_1.Routes.applicationGuildCommands(config_1.clientId, config_1.devServerId) : v9_1.Routes.applicationCommands(config_1.clientId), { body: commands.map(cmd => cmd.toJSON()) }).catch(err => {
         console.error("Error with global command registration: \n", err);
     });
     if (statusMessage)
         console.log("Registered", commands.length, "commands on all guilds and global commands", process.env.NODE_ENV === "DEV" ? "on the dev server" : "globally");
 }
 exports.registerCommands = registerCommands;
-async function setAdminRole(serverId, roleId) {
-}
-exports.setAdminRole = setAdminRole;
-async function givePermissionsToAdmin(guild) {
-}
-exports.givePermissionsToAdmin = givePermissionsToAdmin;
 //* INTERACTIONS
 async function handleInteraction(interaction) {
     switch (interaction.type) {
@@ -98,14 +96,10 @@ function interactionListener(interName, ...accepts) {
     };
 }
 exports.interactionListener = interactionListener;
-function commandStorage(global = false) {
+function commandStorage() {
     return (obj, symbol) => {
         try {
-            commands.push(...obj[symbol]().map(builder => ({
-                builder,
-                commandIds: [],
-                global,
-            })));
+            commands.push(...(obj[symbol]()));
         }
         catch (error) {
             console.error("A commandStorage isn't set up properly. Is the methods return type `SlashCommandBuilder[]`?");

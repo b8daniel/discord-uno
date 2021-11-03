@@ -14,7 +14,6 @@ datasource db {
 
 model Guild {
   guildId     String    @unique
-  adminRole   String?
   unoConfig   UnoConfig @relation(fields: [unoConfigId], references: [id])
   unoConfigId Int       @unique
 }

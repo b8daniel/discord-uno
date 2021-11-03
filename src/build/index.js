@@ -7,7 +7,7 @@ const discord_js_1 = require("discord.js");
 const config_1 = require("./config");
 const guild_1 = require("./guild");
 const interactions_1 = require("./interactions");
-exports.client = new discord_js_1.Client({ intents: [discord_js_1.Intents.FLAGS.GUILDS] });
+exports.client = new discord_js_1.Client({ intents: [discord_js_1.Intents.FLAGS.GUILDS, discord_js_1.Intents.FLAGS.GUILD_MEMBERS] });
 exports.prisma = new client_1.PrismaClient();
 exports.client.on("guildCreate", guild_1.cacheGuild);
 exports.client.on("ready", async () => {
@@ -21,6 +21,11 @@ exports.client.on("ready", async () => {
 });
 exports.client.on("interactionCreate", async (interaction) => {
     await (0, interactions_1.handleInteraction)(interaction);
+});
+exports.client.on("threadMembersUpdate", async (oldMembers, newMembers) => {
+    const leftMembers = oldMembers.difference(newMembers);
+    const joinedMembers = newMembers.difference(oldMembers);
+    console.log(oldMembers, newMembers);
 });
 exports.client.login(config_1.token);
 // https://discord.com/api/oauth2/authorize?client_id=902616076196651058&scope=bot%20applications.commands&permissions=534790925376

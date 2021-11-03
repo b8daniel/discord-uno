@@ -22,6 +22,6 @@ __decorate([
     (0, interactions_1.interactionListener)("ping", "APPLICATION_COMMAND")
 ], PingCommand.prototype, "onPing", null);
 __decorate([
-    (0, interactions_1.commandStorage)(true)
+    (0, interactions_1.commandStorage)()
 ], PingCommand.prototype, "commands", null);
 exports.default = PingCommand;

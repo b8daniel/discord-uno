@@ -1,16 +1,15 @@
 import { SlashCommandBuilder } from "@discordjs/builders";
 import { REST } from "@discordjs/rest";
 import { Routes } from "discord-api-types/v9";
-import { Guild as DBGuild } from "@prisma/client";
-import { ApplicationCommandData, Guild, Interaction, InteractionType } from "discord.js";
+import { Interaction, InteractionType } from "discord.js";
 import { clientId, devServerId, token } from "./config";
-import { ApplicationCommandResponse, InteractionListener, SlashCommandData } from "./types";
+import { InteractionListener } from "./types";
 import { readdir } from "fs/promises";
 import * as pathUtils from "path";
 import { getGuildCache } from "./guild";
 
 const listeners: InteractionListener[] = [];
-const commands: SlashCommandData[] = [];
+const commands: SlashCommandBuilder[] = [];
 
 //* COMMANDS
 export async function registerCommands(statusMessage: boolean = true) {
@@ -20,6 +19,7 @@ export async function registerCommands(statusMessage: boolean = true) {
   const guilds = getGuildCache();
   if (guilds.length === 0) console.warn("! Couldn't find any guilds from the db in the cache! Are they beeing cached before?");
 
+  /*
   //* GUILD COMMANDS
   await Promise.all(
     guilds.map(async (guild: DBGuild) => {
@@ -30,15 +30,17 @@ export async function registerCommands(statusMessage: boolean = true) {
         guildId: guild.guildId,
         id: cmd.id
       }));
+      console.log(commands);
     })
   ).catch(err => {
     console.error("Error with guild command registration: \n", err);
   });
+  */
 
   //* GLOBAL COMMANDS
   await rest.put(process.env.NODE_ENV === "DEV" ?
     Routes.applicationGuildCommands(clientId, devServerId) : Routes.applicationCommands(clientId),
-    { body: commands.filter(cmd => cmd.global).map(cmd => cmd.builder.toJSON()) }
+    { body: commands.map(cmd => cmd.toJSON()) }
   ).catch(err => {
     console.error("Error with global command registration: \n", err);
   });
@@ -48,15 +50,6 @@ export async function registerCommands(statusMessage: boolean = true) {
     commands.length,
     "commands on all guilds and global commands",
     process.env.NODE_ENV === "DEV" ? "on the dev server" : "globally");
-}
-
-
-export async function setAdminRole(serverId: string, roleId: string) {
-
-}
-
-export async function givePermissionsToAdmin(guild: Guild) {
-
 }
 
 //* INTERACTIONS
@@ -117,7 +110,6 @@ export async function loadInteractions(folderPath: string = "src/build/interacti
   console.log("Loaded", commands.length, "command(s) &", listeners.length, "listener(s) from", fileNames.length, "file(s)!");
 }
 
-
 //* DECORATORS
 export function interactionListener(interName: string, ...accepts: InteractionType[]): MethodDecorator {
   return (obj, symbol, _descriptor) => {
@@ -130,14 +122,10 @@ export function interactionListener(interName: string, ...accepts: InteractionTy
   };
 }
 
-export function commandStorage(global = false): MethodDecorator {
+export function commandStorage(): MethodDecorator {
   return (obj, symbol) => {
     try {
-      commands.push(...(obj[symbol]() as SlashCommandBuilder[]).map(builder => ({
-        builder,
-        commandIds: [],
-        global,
-      })));
+      commands.push(...(obj[symbol]()));
     } catch (error) {
       console.error("A commandStorage isn't set up properly. Is the methods return type `SlashCommandBuilder[]`?");
     }

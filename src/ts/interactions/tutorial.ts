@@ -1,21 +1,22 @@
 import { SlashCommandBuilder } from "@discordjs/builders";
 import { CommandInteraction, MessageActionRow, MessageButton, MessageComponentInteraction } from "discord.js";
-import { TUTORIAL_EMBED } from "../embeds";
+import { ERR_ONLY_IN_GUILD, TUTORIAL_EMBED_ADMIN, TUTORIAL_EMBED_USER } from "../embeds";
 import { commandStorage, interactionListener } from "../interactions";
 
-export default class Tutorial {
+export default class TutorialCommand {
 
   @interactionListener("tutorial", "APPLICATION_COMMAND")
   onTutorialCommand(interaction: CommandInteraction) {
+    if (!interaction.inGuild()) return interaction.reply({ embeds: [ERR_ONLY_IN_GUILD], ephemeral: true });
     const row = new MessageActionRow()
       .addComponents(
         new MessageButton()
           .setCustomId("tutorial-yes")
           .setLabel(randomItem(positiveWords))
-          .setStyle("PRIMARY")
+          .setStyle("SUCCESS")
           .setEmoji(randomItem(positiveEmojis))
       );
-    interaction.reply({ embeds: [TUTORIAL_EMBED], ephemeral: true, components: [row] });
+    interaction.reply({ embeds: [interaction.user.id === interaction.guild.ownerId ? TUTORIAL_EMBED_ADMIN : TUTORIAL_EMBED_USER], ephemeral: true, components: [row] });
   }
 
   @interactionListener("tutorial-yes", "MESSAGE_COMPONENT")

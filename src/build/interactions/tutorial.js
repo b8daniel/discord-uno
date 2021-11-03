@@ -10,15 +10,17 @@ const builders_1 = require("@discordjs/builders");
 const discord_js_1 = require("discord.js");
 const embeds_1 = require("../embeds");
 const interactions_1 = require("../interactions");
-class Tutorial {
+class TutorialCommand {
     onTutorialCommand(interaction) {
+        if (!interaction.inGuild())
+            return interaction.reply({ embeds: [embeds_1.ERR_ONLY_IN_GUILD], ephemeral: true });
         const row = new discord_js_1.MessageActionRow()
             .addComponents(new discord_js_1.MessageButton()
             .setCustomId("tutorial-yes")
             .setLabel(randomItem(positiveWords))
-            .setStyle("PRIMARY")
+            .setStyle("SUCCESS")
             .setEmoji(randomItem(positiveEmojis)));
-        interaction.reply({ embeds: [embeds_1.TUTORIAL_EMBED], ephemeral: true, components: [row] });
+        interaction.reply({ embeds: [interaction.user.id === interaction.guild.ownerId ? embeds_1.TUTORIAL_EMBED_ADMIN : embeds_1.TUTORIAL_EMBED_USER], ephemeral: true, components: [row] });
     }
     onButtonInteract(interaction) {
         interaction.reply({ content: `${randomItem(positiveWords).toLocaleUpperCase()}! ${randomItem(positiveEmojis)}`, ephemeral: true });
@@ -31,14 +33,14 @@ class Tutorial {
 }
 __decorate([
     (0, interactions_1.interactionListener)("tutorial", "APPLICATION_COMMAND")
-], Tutorial.prototype, "onTutorialCommand", null);
+], TutorialCommand.prototype, "onTutorialCommand", null);
 __decorate([
     (0, interactions_1.interactionListener)("tutorial-yes", "MESSAGE_COMPONENT")
-], Tutorial.prototype, "onButtonInteract", null);
+], TutorialCommand.prototype, "onButtonInteract", null);
 __decorate([
     (0, interactions_1.commandStorage)()
-], Tutorial.prototype, "commands", null);
-exports.default = Tutorial;
+], TutorialCommand.prototype, "commands", null);
+exports.default = TutorialCommand;
 const positiveWords = [
     "amazing",
     "awesome",

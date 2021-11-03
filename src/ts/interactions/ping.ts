@@ -9,7 +9,7 @@ export default class PingCommand {
     await interaction.reply("Pong :partying_face:");
   }
 
-  @commandStorage(true)
+  @commandStorage()
   commands() {
     return [
       new SlashCommandBuilder().setName("ping").setDescription("Test out a slash command!")

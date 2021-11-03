@@ -7,7 +7,7 @@ import { cacheGuild } from './guild';
 
 import { handleInteraction, loadInteractions, registerCommands } from './interactions';
 
-export const client = new Client({ intents: [Intents.FLAGS.GUILDS] });
+export const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MEMBERS] });
 export const prisma = new PrismaClient();
 
 client.on("guildCreate", cacheGuild);
@@ -31,6 +31,15 @@ client.on("ready", async () => {
 client.on("interactionCreate", async interaction => {
   await handleInteraction(interaction);
 });
+
+/*
+client.on("threadMembersUpdate", async (oldMembers, newMembers) => {
+  const leftMembers = oldMembers.difference(newMembers);
+  const joinedMembers = newMembers.difference(oldMembers);
+
+  console.log(oldMembers, newMembers);
+});
+*/
 
 client.login(token);
 
