@@ -20,7 +20,7 @@ class AdminCommand {
                 const newChannel = interaction.options.getChannel("gamechannel");
                 const unoConfigId = await getUnoConfigId(interaction.guildId);
                 if (!unoConfigId)
-                    return interaction.reply({ embeds: [embeds_1.ERR_BASE.setFooter("guild not found in db")], ephemeral: true });
+                    return interaction.reply({ embeds: [new discord_js_1.MessageEmbed(embeds_1.ERR_BASE).setFooter("guild not found in db")], ephemeral: true });
                 await __1.prisma.unoConfig.update({
                     where: {
                         id: unoConfigId,
@@ -31,7 +31,7 @@ class AdminCommand {
                 });
                 interaction.reply({ embeds: [embeds_1.BASE_EMB.setDescription(`Updated gamechannel to <#${newChannel.id}>`)], ephemeral: true });
                 if (!(newChannel instanceof discord_js_1.TextChannel))
-                    return interaction.reply({ embeds: [embeds_1.ERR_BASE.setFooter("specified channel is not instanceof TextChannel")], ephemeral: true });
+                    return interaction.reply({ embeds: [new discord_js_1.MessageEmbed(embeds_1.ERR_BASE).setFooter("specified channel is not instanceof TextChannel")], ephemeral: true });
                 newChannel.send({ embeds: [embeds_1.GAME_CONTROLS], components: embeds_1.GAME_CONTROL_COMPONENTS });
                 break;
             }
@@ -39,7 +39,7 @@ class AdminCommand {
                 const newRole = interaction.options.getRole("unoping");
                 const unoConfigId = await getUnoConfigId(interaction.guildId);
                 if (!unoConfigId)
-                    return interaction.reply({ embeds: [embeds_1.ERR_BASE.setFooter("guild not found in db")], ephemeral: false });
+                    return interaction.reply({ embeds: [new discord_js_1.MessageEmbed(embeds_1.ERR_BASE).setFooter("guild not found in db")], ephemeral: false });
                 await __1.prisma.unoConfig.update({
                     where: {
                         id: unoConfigId,
@@ -48,7 +48,7 @@ class AdminCommand {
                         matchRoleId: newRole.id,
                     }
                 });
-                interaction.reply({ embeds: [embeds_1.BASE_EMB.setDescription(`Updated unoping to <@&${newRole.id}>`)], ephemeral: true });
+                interaction.reply({ embeds: [new discord_js_1.MessageEmbed(embeds_1.BASE_EMB).setDescription(`Updated unoping to <@&${newRole.id}>`)], ephemeral: true });
                 break;
             }
         }

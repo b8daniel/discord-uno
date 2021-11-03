@@ -5,6 +5,7 @@ exports.prisma = exports.client = void 0;
 const client_1 = require(".prisma/client");
 const discord_js_1 = require("discord.js");
 const config_1 = require("./config");
+const games_1 = require("./games");
 const guild_1 = require("./guild");
 const interactions_1 = require("./interactions");
 exports.client = new discord_js_1.Client({ intents: [discord_js_1.Intents.FLAGS.GUILDS, discord_js_1.Intents.FLAGS.GUILD_MEMBERS] });
@@ -23,9 +24,9 @@ exports.client.on("interactionCreate", async (interaction) => {
     await (0, interactions_1.handleInteraction)(interaction);
 });
 exports.client.on("threadMembersUpdate", async (oldMembers, newMembers) => {
-    const leftMembers = oldMembers.difference(newMembers);
-    const joinedMembers = newMembers.difference(oldMembers);
-    console.log(oldMembers, newMembers);
+    const thread = oldMembers.concat(newMembers).first().thread;
+    if ((0, games_1.isGameThread)(thread.id))
+        await (0, games_1.onGameMembersUpdate)(thread, newMembers);
 });
 exports.client.login(config_1.token);
 // https://discord.com/api/oauth2/authorize?client_id=902616076196651058&scope=bot%20applications.commands&permissions=534790925376

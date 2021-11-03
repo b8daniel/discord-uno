@@ -3,6 +3,7 @@ import { PrismaClient } from '.prisma/client';
 import { Client, Guild, Intents } from 'discord.js';
 
 import { token } from "./config";
+import { isGameThread, onGameMembersUpdate } from './games';
 import { cacheGuild } from './guild';
 
 import { handleInteraction, loadInteractions, registerCommands } from './interactions';
@@ -32,14 +33,14 @@ client.on("interactionCreate", async interaction => {
   await handleInteraction(interaction);
 });
 
-/*
-client.on("threadMembersUpdate", async (oldMembers, newMembers) => {
-  const leftMembers = oldMembers.difference(newMembers);
-  const joinedMembers = newMembers.difference(oldMembers);
 
-  console.log(oldMembers, newMembers);
+client.on("threadMembersUpdate", async (oldMembers, newMembers) => {
+
+  const thread = oldMembers.concat(newMembers).first().thread;
+  if (isGameThread(thread.id)) await onGameMembersUpdate(thread, newMembers);
+
 });
-*/
+
 
 client.login(token);
 

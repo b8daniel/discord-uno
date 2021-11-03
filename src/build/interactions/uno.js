@@ -12,13 +12,14 @@ const embeds_1 = require("../embeds");
 const games_1 = require("../games");
 const interactions_1 = require("../interactions");
 class UNOButtons {
-    createNewGame(interaction) {
+    async createNewGame(interaction) {
         const currentlyPlaying = (0, games_1.getGame)(interaction.user.id);
         if (currentlyPlaying)
             return interaction.reply({ embeds: [embeds_1.BASE_EMB.setDescription(`You are currently playing in <#${currentlyPlaying.threadId}>`)], ephemeral: true });
         if (!(interaction.channel instanceof discord_js_1.TextChannel))
             return interaction.reply({ embeds: [embeds_1.ERR_BASE.setFooter("The game channel should be a text-channel")] });
-        (0, games_1.createGame)(interaction.user, interaction.channel);
+        const gameThread = await (0, games_1.createGame)(interaction.user, interaction.channel);
+        interaction.reply({ embeds: [embeds_1.BASE_EMB.setDescription(`started new game in ${gameThread}`)], ephemeral: true });
     }
     giveCards(interaction) {
         interaction.reply({ content: "your secret cards go here", ephemeral: true });
