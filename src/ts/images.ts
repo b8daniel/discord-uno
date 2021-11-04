@@ -5,7 +5,7 @@ type ImagePlayerData = {
   cardsLeft: number,
 };
 
-type UnoCard = {
+export type UnoCard = {
   color: UnoColor,
   type: UnoType;
 };
@@ -147,9 +147,10 @@ export async function generateOverview(params: OverviewData) {
 //TODO produced Image may be smaller, scale down for faster computation and load times in discord 
 export async function generateCards(cards: UnoCard[]) {
   //* 12 cards per row!
+  const nRows = Math.ceil(cards.length / 12);
   const [widht, height] = [
     ImageAssets.CARD.width * 12 + padding * 3.1,
-    padding * 2 + ImageAssets.CARD.height * Math.ceil(cards.length / 12) + padding * 0.1 * (Math.ceil(cards.length / 12) - 1)
+    padding * 2 + ImageAssets.CARD.height * nRows + padding * 0.1 * (nRows - 1)
   ];
 
   const canvas = createCanvas(widht, height);
@@ -161,7 +162,10 @@ export async function generateCards(cards: UnoCard[]) {
   const allCards = await loadImage(ImageAssets.CARDS_ALL.path);
 
   cards.forEach((card, i) => {
-    ctx.drawImage(allCards, card.type * ImageAssets.CARD.width, card.color * ImageAssets.CARD.height, ImageAssets.CARD.width, ImageAssets.CARD.height, padding + (i % 12) * ImageAssets.CARD.width + i * padding * 0.1, padding + (Math.ceil(cards.length / 12) - 1) * ImageAssets.CARD.height, ImageAssets.CARD.width, ImageAssets.CARD.height);
+    ctx.drawImage(allCards, card.type * ImageAssets.CARD.width, card.color * ImageAssets.CARD.height, ImageAssets.CARD.width, ImageAssets.CARD.height,
+      padding + (i % 12) * ImageAssets.CARD.width + (i % 12) * padding * 0.1,
+      padding + Math.floor(i / 12) * (ImageAssets.CARD.height + padding * 0.1),
+      ImageAssets.CARD.width, ImageAssets.CARD.height);
   });
 
   return canvas;

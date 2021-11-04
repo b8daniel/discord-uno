@@ -13,7 +13,7 @@ const games_1 = require("../games");
 const interactions_1 = require("../interactions");
 class UNOButtons {
     async createNewGame(interaction) {
-        const currentlyPlaying = (0, games_1.getGame)(interaction.user.id);
+        const currentlyPlaying = (0, games_1.getGamefromUser)(interaction.user.id);
         if (currentlyPlaying)
             return interaction.reply({ embeds: [embeds_1.BASE_EMB.setDescription(`You are currently playing in <#${currentlyPlaying.threadId}>`)], ephemeral: true });
         if (!(interaction.channel instanceof discord_js_1.TextChannel))
@@ -21,8 +21,17 @@ class UNOButtons {
         const gameThread = await (0, games_1.createGame)(interaction.user, interaction.channel);
         interaction.reply({ embeds: [embeds_1.BASE_EMB.setDescription(`started new game in ${gameThread}`)], ephemeral: true });
     }
-    giveCards(interaction) {
-        interaction.reply({ content: "your secret cards go here", ephemeral: true });
+    async giveCards(interaction) {
+        if (!(0, games_1.isGameThread)(interaction.channelId))
+            return interaction.reply({ embeds: [new discord_js_1.MessageEmbed(embeds_1.ERR_BASE).setFooter("this isn't an active game thread")] });
+        await interaction.deferReply({ ephemeral: true });
+        const generatedCards = await (0, games_1.getHandCardsForPlayer)(interaction.user, interaction.channelId);
+        if (!generatedCards)
+            interaction.editReply({ content: "You aren't playing in this game" });
+        else {
+            const cardsFile = new discord_js_1.MessageAttachment(generatedCards.toBuffer("image/png"), "handcards.png");
+            interaction.editReply({ files: [cardsFile] });
+        }
     }
 }
 __decorate([

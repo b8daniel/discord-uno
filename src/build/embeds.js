@@ -36,5 +36,5 @@ exports.INGAME_DASHBOARD = new discord_js_1.MessageEmbed()
     .setTitle("Waiting for game to start.")
     .setDescription("Get your hand cards ready while you wait.");
 exports.INGAME_COMPONENTS = [
-    new discord_js_1.MessageActionRow().addComponents(new discord_js_1.MessageButton().setStyle("SECONDARY").setLabel("Card overview").setCustomId("uno-getcards"))
+    new discord_js_1.MessageActionRow().addComponents(new discord_js_1.MessageButton().setStyle("PRIMARY").setEmoji("🎴").setLabel("hand cards").setCustomId("uno-getcards"))
 ];

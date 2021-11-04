@@ -51,7 +51,7 @@ export const INGAME_DASHBOARD = new MessageEmbed()
 
 export const INGAME_COMPONENTS: MessageOptionComponents = [
   new MessageActionRow().addComponents(
-    new MessageButton().setStyle("SECONDARY").setLabel("Card overview").setCustomId("uno-getcards")
+    new MessageButton().setStyle("PRIMARY").setEmoji("🎴").setLabel("hand cards").setCustomId("uno-getcards")
   )
 ];
 
