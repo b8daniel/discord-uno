@@ -16,7 +16,10 @@ exports.client.on("ready", async () => {
         await (0, guild_1.cacheGuild)(guild);
     })).then(() => console.log("🎉cached all guilds from the db "));
     await (0, interactions_1.loadInteractions)();
-    await (0, interactions_1.registerCommands)();
+    if (!process.env.SKIP_COMMAND_REGISTRATION)
+        await (0, interactions_1.registerCommands)();
+    else
+        console.log("skipped registering the commands");
     // 903747567605665833 | 903747567605665834
     // 903747566875852842 | 903747566875852843
 });

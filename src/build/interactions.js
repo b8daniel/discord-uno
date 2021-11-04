@@ -48,30 +48,14 @@ async function handleInteraction(interaction) {
             if (!interaction.isCommand())
                 break;
             await Promise.all(listeners.filter(i => i.name === interaction.commandName && i.accepts.includes("APPLICATION_COMMAND"))
-                .map(async (i) => {
-                if (i.slow) {
-                    await interaction.deferReply();
-                    setTimeout(() => i.listener(interaction), 3500);
-                }
-                else {
-                    await i.listener(interaction);
-                }
-            }));
+                .map(async (i) => await i.listener(interaction)));
             break;
         }
         case "MESSAGE_COMPONENT": {
             if (!interaction.isMessageComponent())
                 break;
             await Promise.all(listeners.filter(i => i.name === interaction.customId && i.accepts.includes("MESSAGE_COMPONENT"))
-                .map(async (i) => {
-                if (i.slow) {
-                    await interaction.deferReply();
-                    setTimeout(() => i.listener(interaction), 3500);
-                }
-                else {
-                    await i.listener(interaction);
-                }
-            }));
+                .map(async (i) => await i.listener(interaction)));
             break;
         }
         case "PING":
@@ -102,13 +86,12 @@ async function loadInteractions(folderPath = "src/build/interactions") {
 }
 exports.loadInteractions = loadInteractions;
 //* DECORATORS
-function interactionListener(interName, accepts, slow) {
+function interactionListener(interName, accepts) {
     return (obj, symbol, _descriptor) => {
         listeners.push({
             name: interName,
             accepts: accepts ? [accepts] : ["APPLICATION_COMMAND", "MESSAGE_COMPONENT"],
             listener: obj[symbol],
-            slow,
         });
     };
 }

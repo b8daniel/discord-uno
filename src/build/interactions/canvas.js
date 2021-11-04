@@ -11,55 +11,68 @@ const discord_js_1 = require("discord.js");
 const images_1 = require("../images");
 const interactions_1 = require("../interactions");
 class CanvasCommand {
-    onCommand(interaction) {
+    async onCommand(interaction) {
+        await interaction.deferReply();
         switch (interaction.options.getSubcommand()) {
             case "overview": {
-                interaction.editReply({
-                    files: [
-                        new discord_js_1.MessageAttachment((0, images_1.generateOverview)({
-                            playedCards: [
-                                {
-                                    type: images_1.UnoType.ONE,
-                                    color: images_1.UnoColor.RED
-                                },
-                                {
-                                    type: images_1.UnoType.ONE,
-                                    color: images_1.UnoColor.RED
-                                },
-                                {
-                                    type: images_1.UnoType.ONE,
-                                    color: images_1.UnoColor.RED
-                                },
-                            ],
-                            players: [
-                                {
-                                    name: "BlxckDxn1",
-                                    cardsLeft: 2,
-                                },
-                                {
-                                    name: "BlxckDxn1",
-                                    cardsLeft: 1,
-                                },
-                                {
-                                    name: "BlxckDxn1",
-                                    cardsLeft: 99,
-                                },
-                            ],
-                            playingDirection: 1,
-                            upNow: 2
-                        }).toBuffer(), "overview.png")
-                    ]
+                const generatedCanvas = await (0, images_1.generateOverview)({
+                    playedCards: [
+                        {
+                            type: images_1.UnoType.ONE,
+                            color: images_1.UnoColor.RED
+                        },
+                        {
+                            type: images_1.UnoType.NINE,
+                            color: images_1.UnoColor.GREEN
+                        },
+                        {
+                            type: images_1.UnoType.ONE,
+                            color: images_1.UnoColor.BLUE
+                        },
+                    ],
+                    players: [
+                        {
+                            name: "BlxckDxn1",
+                            cardsLeft: 2,
+                        },
+                        {
+                            name: "BlxckDxn",
+                            cardsLeft: 1,
+                        },
+                        {
+                            name: "BlxckDx",
+                            cardsLeft: 22,
+                        },
+                        {
+                            name: "BlxckD",
+                            cardsLeft: 12,
+                        },
+                        {
+                            name: "Blxck",
+                            cardsLeft: 11,
+                        },
+                    ],
+                    playingDirection: 1,
+                    upNow: 2
                 });
+                const overviewPng = new discord_js_1.MessageAttachment(generatedCanvas.toBuffer("image/png"), "overview.png");
+                await interaction.editReply({ files: [overviewPng] });
+                break;
             }
             case "cards": {
+                const generatedCanvas = await (0, images_1.generateCards)([
+                    {
+                        color: images_1.UnoColor.GREEN,
+                        type: images_1.UnoType.REVERSE,
+                    },
+                    {
+                        color: images_1.UnoColor.BLACK,
+                        type: images_1.UnoType.CHOOSE_FOUR
+                    }
+                ]);
                 interaction.editReply({
                     files: [
-                        new discord_js_1.MessageAttachment((0, images_1.generateCards)([
-                            {
-                                color: images_1.UnoColor.GREEN,
-                                type: images_1.UnoType.REVERSE,
-                            }
-                        ]).toBuffer(), "cards.png")
+                        new discord_js_1.MessageAttachment(generatedCanvas.toBuffer(), "cards.png")
                     ]
                 });
             }
@@ -74,7 +87,7 @@ class CanvasCommand {
     }
 }
 __decorate([
-    (0, interactions_1.interactionListener)("canvas", "APPLICATION_COMMAND", true)
+    (0, interactions_1.interactionListener)("canvas", "APPLICATION_COMMAND")
 ], CanvasCommand.prototype, "onCommand", null);
 __decorate([
     (0, interactions_1.commandStorage)()

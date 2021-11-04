@@ -4,7 +4,6 @@ import { Interaction, InteractionType } from "discord.js";
 export type InteractionListener = {
   name: string,
   accepts: InteractionType[],
-  slow: boolean,
   listener: (interaction: Interaction) => void | Promise<void>;
 };
 

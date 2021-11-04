@@ -22,7 +22,8 @@ client.on("ready", async () => {
   ).then(() => console.log("🎉cached all guilds from the db "));
 
   await loadInteractions();
-  await registerCommands();
+  if (!process.env.SKIP_COMMAND_REGISTRATION) await registerCommands();
+  else console.log("skipped registering the commands");
 
   // 903747567605665833 | 903747567605665834
   // 903747566875852842 | 903747566875852843

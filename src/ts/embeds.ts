@@ -33,7 +33,7 @@ export const ERR_ONLY_AS_ADMIN = new MessageEmbed()
   .setTitle("This is only availeable for admins of a guild.");
 
 export const GAME_CONTROLS = new MessageEmbed(BASE_EMB)
-  .setTitle("⚔️ Use the buttons to start a game! 🎮");
+  .setTitle("⚔️ Use the button to start a game! 🎮");
 
 export const GAME_CONTROL_COMPONENTS: MessageOptionComponents = [
   new MessageActionRow().addComponents(

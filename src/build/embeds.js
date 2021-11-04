@@ -25,7 +25,7 @@ exports.ERR_ONLY_AS_ADMIN = new discord_js_1.MessageEmbed()
     .setColor("DARK_RED")
     .setTitle("This is only availeable for admins of a guild.");
 exports.GAME_CONTROLS = new discord_js_1.MessageEmbed(exports.BASE_EMB)
-    .setTitle("⚔️ Use the buttons to start a game! 🎮");
+    .setTitle("⚔️ Use the button to start a game! 🎮");
 exports.GAME_CONTROL_COMPONENTS = [
     new discord_js_1.MessageActionRow().addComponents(new discord_js_1.MessageButton().setStyle("SUCCESS").setEmoji("🎮").setLabel("new game").setCustomId("uno-creategame"))
 ];

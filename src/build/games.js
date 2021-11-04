@@ -11,7 +11,7 @@ function getGame(userId) {
 exports.getGame = getGame;
 async function createGame(creator, channel) {
     const infoMessage = await channel.send({
-        embeds: [generateJoinGameEmbed(0, creator.username, 0)]
+        embeds: [generateJoinGameEmbed([], creator.username, 0)]
     });
     const newThread = await infoMessage.startThread({
         name: `game-${exports.runningGames.length + 1}`,
@@ -41,12 +41,12 @@ exports.isGameThread = isGameThread;
 async function onGameMembersUpdate(thread, newMembers) {
     const gameObject = exports.runningGames.find(gme => gme.threadId === thread.id);
     const threadMessage = await thread.fetchStarterMessage();
-    await threadMessage.edit({ embeds: [generateJoinGameEmbed(newMembers.size - 1, gameObject.creator, 100000000)] });
+    await threadMessage.edit({ embeds: [generateJoinGameEmbed(Array.from(newMembers.filter((_, id) => id !== thread.guild.me.id).keys()), gameObject.creator, 100000000)] });
 }
 exports.onGameMembersUpdate = onGameMembersUpdate;
-function generateJoinGameEmbed(players, creator, startTime) {
+function generateJoinGameEmbed(playerIds, creator, startTime) {
     return new discord_js_1.MessageEmbed(embeds_1.JOIN_GAME_EMBED)
         .setAuthor("started by " + creator)
-        .addField("players:", players.toFixed(0), true)
+        .addField("players:", playerIds.length > 0 ? playerIds.map(id => `<@${id}>`).join(", ") : "none", true)
         .addField("start:", `<t:${startTime.toFixed(0)}:R>`, true);
 }
