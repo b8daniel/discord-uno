@@ -5,7 +5,7 @@ type MessageOptionComponents = MessageOptions["components"];
 export const primaryColor = "#04F089";
 
 export const ERR_BASE = new MessageEmbed()
-  .setColor("DARK_RED")
+  .setColor("RED")
   .setTitle("An error accoured!");
 
 export const BASE_EMB = new MessageEmbed()
@@ -52,6 +52,14 @@ export const INGAME_DASHBOARD = new MessageEmbed()
 export const INGAME_COMPONENTS: MessageOptionComponents = [
   new MessageActionRow().addComponents(
     new MessageButton().setStyle("PRIMARY").setEmoji("🎴").setLabel("hand cards").setCustomId("uno-getcards")
+  )
+];
+
+export const HAND_CARD_COMPONENTS: MessageOptionComponents = [
+  new MessageActionRow().addComponents(
+    new MessageButton().setStyle("DANGER").setEmoji("💥").setLabel("uno").setCustomId("uno-calluno"),
+    new MessageButton().setStyle("SECONDARY").setLabel("take a card").setCustomId("uno-takecard"),
+    new MessageButton().setStyle("SECONDARY").setLabel("can't put a card").setCustomId("uno-putnocard").setDisabled(true)
   )
 ];
 

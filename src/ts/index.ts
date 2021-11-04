@@ -3,7 +3,7 @@ import { PrismaClient } from '.prisma/client';
 import { Client, Guild, Intents } from 'discord.js';
 
 import { token } from "./config";
-import { isGameThread, onGameMembersUpdate } from './games';
+import { endGame, isGameThread, onGameMembersUpdate } from './games';
 import { cacheGuild } from './guild';
 
 import { handleInteraction, loadInteractions, registerCommands } from './interactions';
@@ -42,6 +42,10 @@ client.on("threadMembersUpdate", async (oldMembers, newMembers) => {
 
 });
 
+// execute a callback when a thread is deleted
+client.on("threadDelete", async (thread) => {
+  if (isGameThread(thread.id)) await endGame(thread.id);
+});
 
 client.login(token);
 

@@ -74,10 +74,10 @@ export enum UnoType {
   EIGHT,
   NINE,
   SKIP,
-  TAKE_TWO,
+  DRAW_TWO,
   REVERSE,
-  CHOOSE_FOUR,
-  COOSE,
+  WILD_DRAW_FOUR,
+  WILD,
 }
 
 const padding = 30;

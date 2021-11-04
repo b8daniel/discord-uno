@@ -64,7 +64,7 @@ export default class CanvasCommand {
           },
           {
             color: UnoColor.BLACK,
-            type: UnoType.CHOOSE_FOUR
+            type: UnoType.WILD_DRAW_FOUR,
           }
         ]);
 

@@ -67,7 +67,7 @@ class CanvasCommand {
                     },
                     {
                         color: images_1.UnoColor.BLACK,
-                        type: images_1.UnoType.CHOOSE_FOUR
+                        type: images_1.UnoType.WILD_DRAW_FOUR,
                     }
                 ]);
                 interaction.editReply({
