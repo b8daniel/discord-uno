@@ -6,6 +6,7 @@ const embeds_1 = require("./embeds");
 const images_1 = require("./images");
 exports.runningGames = [];
 let nextGameId = 0;
+const startCardCount = 1;
 exports.unoColorEmojis = {
     [images_1.UnoColor.RED]: "🟥",
     [images_1.UnoColor.BLUE]: "🟦",
@@ -61,7 +62,10 @@ async function createGame(creator, channel) {
             waitingForUno: false,
             cardsInStack: unoCardStack,
             handCards: {},
-            lastPlayedCards: takeRandomCards(1, unoCardStack, getAllUnoCards),
+            lastPlayedCards: 
+            //! only for testing
+            [{ color: images_1.UnoColor.BLACK, type: images_1.UnoType.WILD }],
+            // takeRandomCards(1, unoCardStack, getAllUnoCards),
             upNow: 0,
             stats: {},
             playingDirection: 1,
@@ -85,7 +89,10 @@ async function onGameMembersUpdate(thread, newMembers) {
         gameObject.players = memberIds;
         memberIds.forEach(id => {
             if (!gameObject.gameState.handCards[id]) {
-                gameObject.gameState.handCards[id] = takeRandomCards(7, gameObject.gameState.cardsInStack, getAllUnoCards);
+                gameObject.gameState.handCards[id] =
+                    //! only for testing
+                    [{ type: images_1.UnoType.WILD, color: images_1.UnoColor.BLACK }, { type: images_1.UnoType.WILD, color: images_1.UnoColor.BLACK }];
+                // takeRandomCards(startCardCount, gameObject.gameState.cardsInStack, getAllUnoCards);
             }
         });
         const threadMessage = await thread.fetchStarterMessage();
@@ -159,18 +166,14 @@ async function updateOverview(thread) {
     gameObject.overviewMessageId = newMessage.id;
 }
 exports.updateOverview = updateOverview;
-//asdasd
 async function updateHandCards(interaction) {
     const gameObject = exports.runningGames.find(gme => gme.threadId === interaction.channelId);
     if (!gameObject)
         return;
-    //! Uncaught DiscordAPIError: Unknown Message
-    // const oldCardDisplayId = gameObject.gameState.cardDisplayIds[interaction.user.id];
-    // if (oldCardDisplayId) {
-    //   await interaction.channel.messages.fetch(oldCardDisplayId).then(msg => msg.edit({ components: [] }));
-    // }
     const cards = getHandCardsForPlayer(interaction.user.id, interaction.channelId);
     cards.sort((a, b) => (a.color - b.color) !== 0 ? a.color - b.color : a.type - b.type);
+    if (cards.length === 0)
+        return;
     const cardsFile = new discord_js_1.MessageAttachment((await (0, images_1.generateCards)(cards)).toBuffer("image/png"), "handcards.png");
     const cardSelector = new discord_js_1.MessageActionRow().addComponents(new discord_js_1.MessageSelectMenu().setCustomId("uno-placecard").setPlaceholder("place a card").addOptions(cards.map((card, i) => {
         if (i !== cards.findIndex(card1 => card1.type === card.type && card1.color === card.color)) {
@@ -204,7 +207,8 @@ async function playCard(interaction, cardIndex, cardColor) {
     // reply within 3 seconds
     await interaction.reply({ content: "your cards:", ephemeral: true });
     // remove card from hand
-    const card = gameObject.gameState.handCards[interaction.user.id].splice(cardIndex, 1)[0];
+    const handCards = gameObject.gameState.handCards[interaction.user.id];
+    const card = handCards.splice(cardIndex, 1)[0];
     card.color = cardColor ?? card.color;
     // add card to last played cards
     gameObject.gameState.lastPlayedCards.push(card);
@@ -212,17 +216,27 @@ async function playCard(interaction, cardIndex, cardColor) {
         gameObject.gameState.lastPlayedCards.shift();
     gameObject.gameState.cardsTaken[interaction.user.id] = 0;
     // player needs to call uno
-    let unoInteraction = interaction;
-    if (gameObject.gameState.handCards[interaction.user.id].length === 1) {
-        await updateHandCards(interaction);
-        await updateOverview(interaction.channel);
+    if (handCards.length === 1) {
+        await interaction.editReply({ content: "don't forget to call uno when you only have one card left." });
         gameObject.gameState.waitingForUno = true;
-        const callCollector = await (await interaction.fetchReply()).awaitMessageComponent({ componentType: "BUTTON", filter: c => c.customId === "uno-calluno", time: 10e3 }).catch(() => false);
+        const callCollector = await interaction.message.awaitMessageComponent({ componentType: "BUTTON", filter: c => c.customId === "uno-calluno", time: 10e3 }).catch(() => false);
         if (!callCollector) {
             // player didn't call uno
-            gameObject.gameState.handCards[interaction.user.id].push(...takeRandomCards(2, gameObject.gameState.cardsInStack, getAllUnoCards));
-            interaction.followUp({ content: "you didn't call uno, so you get 2 cards", ephemeral: true });
+            handCards.push(...takeRandomCards(2, gameObject.gameState.cardsInStack, getAllUnoCards));
+            await interaction.editReply({ content: "you didn't call uno, so you get 2 cards" });
         }
+        gameObject.gameState.waitingForUno = false;
+    }
+    else if (handCards.length === 0) {
+        //TODO end game
+        await updateOverview(interaction.channel);
+        await interaction.editReply("You win!");
+        await interaction.followUp({ embeds: [new discord_js_1.MessageEmbed(embeds_1.WIN_EMBED).setAuthor(`congratulations ${interaction.user.username},`)] });
+        if (interaction.channel.isThread()) {
+            await interaction.channel.setLocked(true);
+            exports.runningGames.splice(exports.runningGames.findIndex(gme => gme.threadId === interaction.channelId), 1);
+        }
+        return;
     }
     // set next player
     gameObject.gameState.upNow = (gameObject.gameState.upNow + gameObject.gameState.playingDirection) % gameObject.players.length;

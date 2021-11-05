@@ -60,3 +60,13 @@ export const HAND_CARD_COMPONENTS: MessageOptionComponents = [
     new MessageButton().setStyle("SECONDARY").setLabel("can't put a card").setCustomId("uno-putnocard"),
   )
 ];
+
+export const WIN_EMBED = new MessageEmbed(BASE_EMB)
+  .setThumbnail("https://c.tenor.com/RVfiMRcRJDoAAAAC/confetti-celebrate.gif")
+  .setTitle("you won!")
+  .setDescription(":confetti_ball: :tada: :partying_face: :tada: :confetti_ball:");
+
+/**
+ * <div class="tenor-gif-embed" data-postid="17933464" data-share-method="host" data-aspect-ratio="1.62437" data-width="100%"><a href="https://tenor.com/view/confetti-gif-17933464">Confetti GIF</a>from <a href="https://tenor.com/search/confetti-gifs">Confetti GIFs</a></div> <script type="text/javascript" async src="https://tenor.com/embed.js"></script>
+ *
+  */

@@ -59,8 +59,6 @@ class UNOButtons {
     //   interaction.reply({ embeds: [new MessageEmbed(BASE_EMB).setDescription("select the color!")], ephemeral: true });
     // }
     async callUno(interaction) {
-        if (!(0, games_1.isAllowedToPlay)(interaction))
-            return;
         interaction.deferUpdate();
     }
     async takeCard(interaction) {

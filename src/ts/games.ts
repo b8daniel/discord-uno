@@ -1,9 +1,11 @@
-import { ButtonInteraction, Client, ClientEvents, Interaction, Message, MessageActionRow, MessageAttachment, MessageComponentInteraction, MessageEmbed, MessageSelectMenu, MessageSelectOptionData, TextBasedChannels, TextChannel, ThreadChannel, User } from "discord.js";
-import { ERR_BASE, HAND_CARD_COMPONENTS, INGAME_COMPONENTS, INGAME_OVERVIEW, JOIN_GAME_EMBED } from "./embeds";
+import { Client, ClientEvents, Message, MessageActionRow, MessageAttachment, MessageComponentInteraction, MessageEmbed, MessageSelectMenu, MessageSelectOptionData, TextChannel, ThreadChannel, User } from "discord.js";
+import { BASE_EMB, ERR_BASE, HAND_CARD_COMPONENTS, INGAME_COMPONENTS, JOIN_GAME_EMBED, WIN_EMBED } from "./embeds";
 import { generateCards, generateOverview, UnoCard, UnoColor, UnoType } from "./images";
 
 export const runningGames: RunningGame[] = [];
 let nextGameId = 0;
+
+const startCardCount = 1;
 
 type RunningGame = {
   gameId: number,
@@ -89,7 +91,10 @@ export async function createGame(creator: User, channel: TextChannel) {
       waitingForUno: false,
       cardsInStack: unoCardStack,
       handCards: {},
-      lastPlayedCards: takeRandomCards(1, unoCardStack, getAllUnoCards),
+      lastPlayedCards:
+        //! only for testing
+        [{ color: UnoColor.BLACK, type: UnoType.WILD }],
+      // takeRandomCards(1, unoCardStack, getAllUnoCards),
       upNow: 0,
       stats: {},
       playingDirection: 1 as const,
@@ -114,7 +119,10 @@ export async function onGameMembersUpdate(thread: ThreadChannel, newMembers: Cli
     gameObject.players = memberIds;
     memberIds.forEach(id => {
       if (!gameObject.gameState.handCards[id]) {
-        gameObject.gameState.handCards[id] = takeRandomCards(7, gameObject.gameState.cardsInStack, getAllUnoCards);
+        gameObject.gameState.handCards[id] =
+          //! only for testing
+          [{ type: UnoType.WILD, color: UnoColor.BLACK }, { type: UnoType.WILD, color: UnoColor.BLACK }];
+        // takeRandomCards(startCardCount, gameObject.gameState.cardsInStack, getAllUnoCards);
       }
     });
 
@@ -197,19 +205,14 @@ export async function updateOverview(thread: ThreadChannel) {
   gameObject.overviewMessageId = newMessage.id;
 }
 
-//asdasd
 export async function updateHandCards(interaction: MessageComponentInteraction) {
   const gameObject = runningGames.find(gme => gme.threadId === interaction.channelId);
   if (!gameObject) return;
 
-  //! Uncaught DiscordAPIError: Unknown Message
-  // const oldCardDisplayId = gameObject.gameState.cardDisplayIds[interaction.user.id];
-  // if (oldCardDisplayId) {
-  //   await interaction.channel.messages.fetch(oldCardDisplayId).then(msg => msg.edit({ components: [] }));
-  // }
-
   const cards = getHandCardsForPlayer(interaction.user.id, interaction.channelId);
   cards.sort((a, b) => (a.color - b.color) !== 0 ? a.color - b.color : a.type - b.type);
+
+  if (cards.length === 0) return;
 
   const cardsFile = new MessageAttachment(
     (await generateCards(cards)).toBuffer("image/png"),
@@ -254,7 +257,8 @@ export async function playCard(interaction: MessageComponentInteraction, cardInd
   await interaction.reply({ content: "your cards:", ephemeral: true });
 
   // remove card from hand
-  const card = gameObject.gameState.handCards[interaction.user.id].splice(cardIndex, 1)[0];
+  const handCards = gameObject.gameState.handCards[interaction.user.id];
+  const card = handCards.splice(cardIndex, 1)[0];
   card.color = cardColor ?? card.color;
 
   // add card to last played cards
@@ -263,21 +267,28 @@ export async function playCard(interaction: MessageComponentInteraction, cardInd
 
   gameObject.gameState.cardsTaken[interaction.user.id] = 0;
 
-
   // player needs to call uno
-  let unoInteraction = interaction;
-  if (gameObject.gameState.handCards[interaction.user.id].length === 1) {
-    await updateHandCards(interaction);
-    await updateOverview(interaction.channel);
-
+  if (handCards.length === 1) {
+    await interaction.editReply({ content: "don't forget to call uno when you only have one card left." });
     gameObject.gameState.waitingForUno = true;
 
-    const callCollector = await ((await interaction.fetchReply()) as Message).awaitMessageComponent({ componentType: "BUTTON", filter: c => c.customId === "uno-calluno", time: 10e3 }).catch(() => false as const);
+    const callCollector = await (interaction.message as Message).awaitMessageComponent({ componentType: "BUTTON", filter: c => c.customId === "uno-calluno", time: 10e3 }).catch(() => false as const);
     if (!callCollector) {
       // player didn't call uno
-      gameObject.gameState.handCards[interaction.user.id].push(...takeRandomCards(2, gameObject.gameState.cardsInStack, getAllUnoCards));
-      interaction.followUp({ content: "you didn't call uno, so you get 2 cards", ephemeral: true });
+      handCards.push(...takeRandomCards(2, gameObject.gameState.cardsInStack, getAllUnoCards));
+      await interaction.editReply({ content: "you didn't call uno, so you get 2 cards" });
     }
+    gameObject.gameState.waitingForUno = false;
+  } else if (handCards.length === 0) {
+    //TODO end game
+    await updateOverview(interaction.channel);
+    await interaction.editReply("You win!");
+    await interaction.followUp({ embeds: [new MessageEmbed(WIN_EMBED).setAuthor(`congratulations ${interaction.user.username},`)] });
+    if (interaction.channel.isThread()) {
+      await interaction.channel.setLocked(true);
+      runningGames.splice(runningGames.findIndex(gme => gme.threadId === interaction.channelId), 1);
+    }
+    return;
   }
 
   // set next player

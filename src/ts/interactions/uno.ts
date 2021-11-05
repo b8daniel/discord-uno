@@ -63,8 +63,6 @@ export default class UNOButtons {
 
   @interactionListener("uno-calluno", "MESSAGE_COMPONENT")
   async callUno(interaction: ButtonInteraction) {
-    if (!isAllowedToPlay(interaction)) return;
-
     interaction.deferUpdate();
   }
 
