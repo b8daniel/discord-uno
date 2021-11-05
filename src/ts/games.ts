@@ -1,5 +1,5 @@
-import { ButtonInteraction, Client, ClientEvents, Interaction, MessageActionRow, MessageAttachment, MessageComponentInteraction, MessageEmbed, MessageSelectMenu, TextBasedChannels, TextChannel, ThreadChannel, User } from "discord.js";
-import { HAND_CARD_COMPONENTS, INGAME_COMPONENTS, INGAME_OVERVIEW, JOIN_GAME_EMBED } from "./embeds";
+import { ButtonInteraction, Client, ClientEvents, Interaction, Message, MessageActionRow, MessageAttachment, MessageComponentInteraction, MessageEmbed, MessageSelectMenu, MessageSelectOptionData, TextBasedChannels, TextChannel, ThreadChannel, User } from "discord.js";
+import { ERR_BASE, HAND_CARD_COMPONENTS, INGAME_COMPONENTS, INGAME_OVERVIEW, JOIN_GAME_EMBED } from "./embeds";
 import { generateCards, generateOverview, UnoCard, UnoColor, UnoType } from "./images";
 
 export const runningGames: RunningGame[] = [];
@@ -19,6 +19,7 @@ type RunningGame = {
 
 type UnoState = {
   upNow: number,
+  waitingForUno: boolean,
   cardsInStack: UnoCard[],
   lastPlayedCards: UnoCard[], // 3 last played cards
   stats: Record<number, number>,
@@ -50,8 +51,8 @@ export const unoTypeNames: Record<UnoType, string> = {
   [UnoType.DRAW_TWO]: "Draw 2",
   [UnoType.REVERSE]: "Reverse",
   [UnoType.SKIP]: "Skip",
-  [UnoType.WILD]: "Wild",
   [UnoType.WILD_DRAW_FOUR]: "Wild Draw 4",
+  [UnoType.WILD]: "Wild",
 };
 
 export function getGamefromUser(userId: string): RunningGame {
@@ -85,6 +86,7 @@ export async function createGame(creator: User, channel: TextChannel) {
     threadId: newThread.id,
     running: false,
     gameState: {
+      waitingForUno: false,
       cardsInStack: unoCardStack,
       handCards: {},
       lastPlayedCards: takeRandomCards(1, unoCardStack, getAllUnoCards),
@@ -136,6 +138,9 @@ function getAllUnoCards() {
   for (let color = 0; color <= 4; color++) {
     for (let type = color !== UnoColor.BLACK ? 0 : 13; type <= (color !== UnoColor.BLACK ? 12 : 14); type++) {
       allCards.push({ color, type }, { color, type });
+      if (type > 12) {
+        allCards.push({ color, type }, { color, type });
+      }
     }
   }
   return allCards;
@@ -213,11 +218,26 @@ export async function updateHandCards(interaction: MessageComponentInteraction) 
 
   const cardSelector = new MessageActionRow().addComponents(
     new MessageSelectMenu().setCustomId("uno-placecard").setPlaceholder("place a card").addOptions(
-      cards.filter((card, i) => i === cards.findIndex((card1 => card1.type === card.type && card1.color === card.color)))
-        .map((card, i) => ({
-          label: `${unoColorEmojis[card.color]}: ${unoTypeNames[card.type]}`,
-          value: String(i),
-        }))
+      cards.map((card, i): MessageSelectOptionData[] => {
+        if (i !== cards.findIndex(card1 => card1.type === card.type && card1.color === card.color)) {
+          return [];
+        }
+        if (card.color === UnoColor.BLACK) {
+          const colorOptions: MessageSelectOptionData[] = [];
+          for (let c = 0; c < 4; c++) {
+            colorOptions.push({
+              label: `${unoColorEmojis[card.color]}: ${unoTypeNames[card.type]}, choose: ${unoColorEmojis[c]}`,
+              value: `${String(i)}_${c}`
+            });
+          }
+          return colorOptions;
+        } else {
+          return [{
+            label: `${unoColorEmojis[card.color]}: ${unoTypeNames[card.type]}`,
+            value: `${String(i)}_${card.color}`,
+          }];
+        }
+      }).reduce((acc, cur) => acc.concat(cur), [])
     ),
   );
 
@@ -230,6 +250,9 @@ export async function playCard(interaction: MessageComponentInteraction, cardInd
   const gameObject = runningGames.find(gme => gme.threadId === interaction.channelId);
   if (!gameObject || !interaction.channel.isThread()) return;
 
+  // reply within 3 seconds
+  await interaction.reply({ content: "your cards:", ephemeral: true });
+
   // remove card from hand
   const card = gameObject.gameState.handCards[interaction.user.id].splice(cardIndex, 1)[0];
   card.color = cardColor ?? card.color;
@@ -238,10 +261,49 @@ export async function playCard(interaction: MessageComponentInteraction, cardInd
   gameObject.gameState.lastPlayedCards.push(card);
   if (gameObject.gameState.lastPlayedCards.length > 3) gameObject.gameState.lastPlayedCards.shift();
 
+  gameObject.gameState.cardsTaken[interaction.user.id] = 0;
+
+
+  // player needs to call uno
+  let unoInteraction = interaction;
+  if (gameObject.gameState.handCards[interaction.user.id].length === 1) {
+    await updateHandCards(interaction);
+    await updateOverview(interaction.channel);
+
+    gameObject.gameState.waitingForUno = true;
+
+    const callCollector = await ((await interaction.fetchReply()) as Message).awaitMessageComponent({ componentType: "BUTTON", filter: c => c.customId === "uno-calluno", time: 10e3 }).catch(() => false as const);
+    if (!callCollector) {
+      // player didn't call uno
+      gameObject.gameState.handCards[interaction.user.id].push(...takeRandomCards(2, gameObject.gameState.cardsInStack, getAllUnoCards));
+      interaction.followUp({ content: "you didn't call uno, so you get 2 cards", ephemeral: true });
+    }
+  }
+
   // set next player
   gameObject.gameState.upNow = (gameObject.gameState.upNow + gameObject.gameState.playingDirection) % gameObject.players.length;
 
-  gameObject.gameState.cardsTaken[interaction.user.id] = 0;
+  const nextPlayerId = gameObject.players[gameObject.gameState.upNow];
+  // special effects
+  //TODO +2 stacking
+  switch (card.type) {
+    case UnoType.SKIP: {
+      gameObject.gameState.upNow = (gameObject.gameState.upNow + gameObject.gameState.playingDirection) % gameObject.players.length;
+      break;
+    }
+    case UnoType.REVERSE: {
+      gameObject.gameState.playingDirection *= -1;
+      break;
+    }
+    case UnoType.DRAW_TWO: {
+      gameObject.gameState.handCards[nextPlayerId].push(...takeRandomCards(2, gameObject.gameState.cardsInStack, getAllUnoCards));
+      break;
+    }
+    case UnoType.WILD_DRAW_FOUR: {
+      gameObject.gameState.handCards[nextPlayerId].push(...takeRandomCards(4, gameObject.gameState.cardsInStack, getAllUnoCards));
+      break;
+    }
+  }
 
   await updateHandCards(interaction);
   await updateOverview(interaction.channel);
@@ -254,4 +316,22 @@ export function giveCardsToPlayer(playerId: string, thread: ThreadChannel, count
   gameObject.gameState.handCards[playerId].push(...takeRandomCards(count, gameObject.gameState.cardsInStack, getAllUnoCards));
   if (!gameObject.gameState.cardsTaken[playerId]) gameObject.gameState.cardsTaken[playerId] = 0;
   gameObject.gameState.cardsTaken[playerId] += count;
+}
+
+export function isAllowedToPlay(interaction: MessageComponentInteraction) {
+  // needs to be a thread
+  // nedds to be in a game
+  if (!isGameThread(interaction.channelId) || !interaction.channel.isThread()) return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setFooter("this isn't an active game thread")], ephemeral: true });
+
+  const { gameState, players } = getGameFromThread(interaction.channelId);
+
+  // needs to be the next player
+  if (players[gameState.upNow] !== interaction.user.id) return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setDescription("It's not your turn")], ephemeral: true });
+  //? needs to have enough cards
+  // not waiting for uno
+  if (gameState.waitingForUno) return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setDescription("You need to call uno")], ephemeral: true });
+
+  // latest card message
+  if (gameState.cardDisplayIds[interaction.user.id] !== interaction.message.id) return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setFooter("these cards are outdated")], ephemeral: true });
+  return true;
 }

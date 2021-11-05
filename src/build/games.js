@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.giveCardsToPlayer = exports.playCard = exports.updateHandCards = exports.updateOverview = exports.endGame = exports.getHandCardsForPlayer = exports.onGameMembersUpdate = exports.isGameThread = exports.createGame = exports.getGameFromThread = exports.getGamefromUser = exports.unoTypeNames = exports.unoColorEmojis = exports.runningGames = void 0;
+exports.isAllowedToPlay = exports.giveCardsToPlayer = exports.playCard = exports.updateHandCards = exports.updateOverview = exports.endGame = exports.getHandCardsForPlayer = exports.onGameMembersUpdate = exports.isGameThread = exports.createGame = exports.getGameFromThread = exports.getGamefromUser = exports.unoTypeNames = exports.unoColorEmojis = exports.runningGames = void 0;
 const discord_js_1 = require("discord.js");
 const embeds_1 = require("./embeds");
 const images_1 = require("./images");
@@ -27,8 +27,8 @@ exports.unoTypeNames = {
     [images_1.UnoType.DRAW_TWO]: "Draw 2",
     [images_1.UnoType.REVERSE]: "Reverse",
     [images_1.UnoType.SKIP]: "Skip",
-    [images_1.UnoType.WILD]: "Wild",
     [images_1.UnoType.WILD_DRAW_FOUR]: "Wild Draw 4",
+    [images_1.UnoType.WILD]: "Wild",
 };
 function getGamefromUser(userId) {
     return exports.runningGames.find(gme => gme.players.includes(userId));
@@ -58,6 +58,7 @@ async function createGame(creator, channel) {
         threadId: newThread.id,
         running: false,
         gameState: {
+            waitingForUno: false,
             cardsInStack: unoCardStack,
             handCards: {},
             lastPlayedCards: takeRandomCards(1, unoCardStack, getAllUnoCards),
@@ -105,6 +106,9 @@ function getAllUnoCards() {
     for (let color = 0; color <= 4; color++) {
         for (let type = color !== images_1.UnoColor.BLACK ? 0 : 13; type <= (color !== images_1.UnoColor.BLACK ? 12 : 14); type++) {
             allCards.push({ color, type }, { color, type });
+            if (type > 12) {
+                allCards.push({ color, type }, { color, type });
+            }
         }
     }
     return allCards;
@@ -168,11 +172,27 @@ async function updateHandCards(interaction) {
     const cards = getHandCardsForPlayer(interaction.user.id, interaction.channelId);
     cards.sort((a, b) => (a.color - b.color) !== 0 ? a.color - b.color : a.type - b.type);
     const cardsFile = new discord_js_1.MessageAttachment((await (0, images_1.generateCards)(cards)).toBuffer("image/png"), "handcards.png");
-    const cardSelector = new discord_js_1.MessageActionRow().addComponents(new discord_js_1.MessageSelectMenu().setCustomId("uno-placecard").setPlaceholder("place a card").addOptions(cards.filter((card, i) => i === cards.findIndex((card1 => card1.type === card.type && card1.color === card.color)))
-        .map((card, i) => ({
-        label: `${exports.unoColorEmojis[card.color]}: ${exports.unoTypeNames[card.type]}`,
-        value: String(i),
-    }))));
+    const cardSelector = new discord_js_1.MessageActionRow().addComponents(new discord_js_1.MessageSelectMenu().setCustomId("uno-placecard").setPlaceholder("place a card").addOptions(cards.map((card, i) => {
+        if (i !== cards.findIndex(card1 => card1.type === card.type && card1.color === card.color)) {
+            return [];
+        }
+        if (card.color === images_1.UnoColor.BLACK) {
+            const colorOptions = [];
+            for (let c = 0; c < 4; c++) {
+                colorOptions.push({
+                    label: `${exports.unoColorEmojis[card.color]}: ${exports.unoTypeNames[card.type]}, choose: ${exports.unoColorEmojis[c]}`,
+                    value: `${String(i)}_${c}`
+                });
+            }
+            return colorOptions;
+        }
+        else {
+            return [{
+                    label: `${exports.unoColorEmojis[card.color]}: ${exports.unoTypeNames[card.type]}`,
+                    value: `${String(i)}_${card.color}`,
+                }];
+        }
+    }).reduce((acc, cur) => acc.concat(cur), [])));
     gameObject.gameState.cardDisplayIds[interaction.user.id] = (await interaction.editReply({ files: [cardsFile], components: [cardSelector, ...embeds_1.HAND_CARD_COMPONENTS] })).id;
 }
 exports.updateHandCards = updateHandCards;
@@ -181,6 +201,8 @@ async function playCard(interaction, cardIndex, cardColor) {
     const gameObject = exports.runningGames.find(gme => gme.threadId === interaction.channelId);
     if (!gameObject || !interaction.channel.isThread())
         return;
+    // reply within 3 seconds
+    await interaction.reply({ content: "your cards:", ephemeral: true });
     // remove card from hand
     const card = gameObject.gameState.handCards[interaction.user.id].splice(cardIndex, 1)[0];
     card.color = cardColor ?? card.color;
@@ -188,9 +210,43 @@ async function playCard(interaction, cardIndex, cardColor) {
     gameObject.gameState.lastPlayedCards.push(card);
     if (gameObject.gameState.lastPlayedCards.length > 3)
         gameObject.gameState.lastPlayedCards.shift();
+    gameObject.gameState.cardsTaken[interaction.user.id] = 0;
+    // player needs to call uno
+    let unoInteraction = interaction;
+    if (gameObject.gameState.handCards[interaction.user.id].length === 1) {
+        await updateHandCards(interaction);
+        await updateOverview(interaction.channel);
+        gameObject.gameState.waitingForUno = true;
+        const callCollector = await (await interaction.fetchReply()).awaitMessageComponent({ componentType: "BUTTON", filter: c => c.customId === "uno-calluno", time: 10e3 }).catch(() => false);
+        if (!callCollector) {
+            // player didn't call uno
+            gameObject.gameState.handCards[interaction.user.id].push(...takeRandomCards(2, gameObject.gameState.cardsInStack, getAllUnoCards));
+            interaction.followUp({ content: "you didn't call uno, so you get 2 cards", ephemeral: true });
+        }
+    }
     // set next player
     gameObject.gameState.upNow = (gameObject.gameState.upNow + gameObject.gameState.playingDirection) % gameObject.players.length;
-    gameObject.gameState.cardsTaken[interaction.user.id] = 0;
+    const nextPlayerId = gameObject.players[gameObject.gameState.upNow];
+    // special effects
+    //TODO +2 stacking
+    switch (card.type) {
+        case images_1.UnoType.SKIP: {
+            gameObject.gameState.upNow = (gameObject.gameState.upNow + gameObject.gameState.playingDirection) % gameObject.players.length;
+            break;
+        }
+        case images_1.UnoType.REVERSE: {
+            gameObject.gameState.playingDirection *= -1;
+            break;
+        }
+        case images_1.UnoType.DRAW_TWO: {
+            gameObject.gameState.handCards[nextPlayerId].push(...takeRandomCards(2, gameObject.gameState.cardsInStack, getAllUnoCards));
+            break;
+        }
+        case images_1.UnoType.WILD_DRAW_FOUR: {
+            gameObject.gameState.handCards[nextPlayerId].push(...takeRandomCards(4, gameObject.gameState.cardsInStack, getAllUnoCards));
+            break;
+        }
+    }
     await updateHandCards(interaction);
     await updateOverview(interaction.channel);
 }
@@ -205,3 +261,22 @@ function giveCardsToPlayer(playerId, thread, count) {
     gameObject.gameState.cardsTaken[playerId] += count;
 }
 exports.giveCardsToPlayer = giveCardsToPlayer;
+function isAllowedToPlay(interaction) {
+    // needs to be a thread
+    // nedds to be in a game
+    if (!isGameThread(interaction.channelId) || !interaction.channel.isThread())
+        return interaction.reply({ embeds: [new discord_js_1.MessageEmbed(embeds_1.ERR_BASE).setFooter("this isn't an active game thread")], ephemeral: true });
+    const { gameState, players } = getGameFromThread(interaction.channelId);
+    // needs to be the next player
+    if (players[gameState.upNow] !== interaction.user.id)
+        return interaction.reply({ embeds: [new discord_js_1.MessageEmbed(embeds_1.ERR_BASE).setDescription("It's not your turn")], ephemeral: true });
+    //? needs to have enough cards
+    // not waiting for uno
+    if (gameState.waitingForUno)
+        return interaction.reply({ embeds: [new discord_js_1.MessageEmbed(embeds_1.ERR_BASE).setDescription("You need to call uno")], ephemeral: true });
+    // latest card message
+    if (gameState.cardDisplayIds[interaction.user.id] !== interaction.message.id)
+        return interaction.reply({ embeds: [new discord_js_1.MessageEmbed(embeds_1.ERR_BASE).setFooter("these cards are outdated")], ephemeral: true });
+    return true;
+}
+exports.isAllowedToPlay = isAllowedToPlay;
