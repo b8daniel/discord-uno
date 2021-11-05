@@ -59,7 +59,9 @@ class UNOButtons {
     //   interaction.reply({ embeds: [new MessageEmbed(BASE_EMB).setDescription("select the color!")], ephemeral: true });
     // }
     async callUno(interaction) {
-        interaction.deferUpdate();
+        if (!(await (0, games_1.isAllowedToPlay)(interaction, true)))
+            return;
+        interaction.reply({ embeds: [new discord_js_1.MessageEmbed(embeds_1.BASE_EMB).setDescription(`<@${interaction.user.id}> called uno!`)] });
     }
     async takeCard(interaction) {
         if (!(await (0, games_1.isAllowedToPlay)(interaction)) || !interaction.channel.isThread())
@@ -73,13 +75,14 @@ class UNOButtons {
         await (0, games_1.updateOverview)(interaction.channel);
     }
     async putNoCard(interaction) {
-        if (!(await (0, games_1.isAllowedToPlay)(interaction)))
+        if (!(await (0, games_1.isAllowedToPlay)(interaction)) || !interaction.channel.isThread())
             return;
         const gameObject = (0, games_1.getGameFromThread)(interaction.channelId);
         if (gameObject.gameState.cardsTaken[interaction.user.id] > 0) {
-            gameObject.gameState.upNow = (gameObject.gameState.upNow + gameObject.gameState.playingDirection) % gameObject.players.length;
+            gameObject.gameState.upNow = (gameObject.gameState.upNow + gameObject.players.length + gameObject.gameState.playingDirection) % gameObject.players.length;
             gameObject.gameState.cardsTaken[interaction.user.id] = 0;
-            interaction.deferUpdate();
+            await interaction.deferUpdate();
+            await (0, games_1.updateOverview)(interaction.channel); // to show who is next
         }
         else {
             interaction.reply({ embeds: [new discord_js_1.MessageEmbed(embeds_1.ERR_BASE).setDescription("You can't skip if you didn't take a card")], ephemeral: true });

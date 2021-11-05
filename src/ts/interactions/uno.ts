@@ -63,7 +63,8 @@ export default class UNOButtons {
 
   @interactionListener("uno-calluno", "MESSAGE_COMPONENT")
   async callUno(interaction: ButtonInteraction) {
-    interaction.deferUpdate();
+    if (!(await isAllowedToPlay(interaction, true))) return;
+    interaction.reply({ embeds: [new MessageEmbed(BASE_EMB).setDescription(`<@${interaction.user.id}> called uno!`)] });
   }
 
   @interactionListener("uno-takecard", "MESSAGE_COMPONENT")
@@ -85,14 +86,15 @@ export default class UNOButtons {
 
   @interactionListener("uno-putnocard", "MESSAGE_COMPONENT")
   async putNoCard(interaction: ButtonInteraction) {
-    if (!(await isAllowedToPlay(interaction))) return;
+    if (!(await isAllowedToPlay(interaction)) || !interaction.channel.isThread()) return;
 
     const gameObject = getGameFromThread(interaction.channelId);
 
     if (gameObject.gameState.cardsTaken[interaction.user.id] > 0) {
-      gameObject.gameState.upNow = (gameObject.gameState.upNow + gameObject.gameState.playingDirection) % gameObject.players.length;
+      gameObject.gameState.upNow = (gameObject.gameState.upNow + gameObject.players.length + gameObject.gameState.playingDirection) % gameObject.players.length;
       gameObject.gameState.cardsTaken[interaction.user.id] = 0;
-      interaction.deferUpdate();
+      await interaction.deferUpdate();
+      await updateOverview(interaction.channel); // to show who is next
     } else {
       interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setDescription("You can't skip if you didn't take a card")], ephemeral: true });
     }

@@ -6,7 +6,7 @@ const embeds_1 = require("./embeds");
 const images_1 = require("./images");
 exports.runningGames = [];
 let nextGameId = 0;
-const startCardCount = 1;
+const startCardCount = 7;
 exports.unoColorEmojis = {
     [images_1.UnoColor.RED]: "🟥",
     [images_1.UnoColor.BLUE]: "🟦",
@@ -54,7 +54,7 @@ async function createGame(creator, channel) {
         infoMessageId: infoMessage.id,
         overviewMessageId: null,
         creator: creator.username,
-        startTime: -1,
+        startTime: Date.now(),
         players: [],
         threadId: newThread.id,
         running: false,
@@ -62,10 +62,9 @@ async function createGame(creator, channel) {
             waitingForUno: false,
             cardsInStack: unoCardStack,
             handCards: {},
-            lastPlayedCards: 
-            //! only for testing
-            [{ color: images_1.UnoColor.BLACK, type: images_1.UnoType.WILD }],
-            // takeRandomCards(1, unoCardStack, getAllUnoCards),
+            lastPlayedCards: takeRandomCards(1, unoCardStack, getAllUnoCards),
+            // //! only for testing
+            // [{ color: UnoColor.BLACK, type: UnoType.WILD }],
             upNow: 0,
             stats: {},
             playingDirection: 1,
@@ -90,13 +89,13 @@ async function onGameMembersUpdate(thread, newMembers) {
         memberIds.forEach(id => {
             if (!gameObject.gameState.handCards[id]) {
                 gameObject.gameState.handCards[id] =
-                    //! only for testing
-                    [{ type: images_1.UnoType.WILD, color: images_1.UnoColor.BLACK }, { type: images_1.UnoType.WILD, color: images_1.UnoColor.BLACK }];
-                // takeRandomCards(startCardCount, gameObject.gameState.cardsInStack, getAllUnoCards);
+                    takeRandomCards(startCardCount, gameObject.gameState.cardsInStack, getAllUnoCards);
+                // //! only for testing
+                // [{ type: UnoType.WILD, color: UnoColor.BLACK }, { type: UnoType.WILD, color: UnoColor.BLACK }];
             }
         });
         const threadMessage = await thread.fetchStarterMessage();
-        await threadMessage.edit({ embeds: [generateJoinGameEmbed(gameObject.players, gameObject.creator, 100000000)] });
+        await threadMessage.edit({ embeds: [generateJoinGameEmbed(gameObject.players, gameObject.creator, gameObject.startTime)] });
         // update the game overview
         await updateOverview(thread);
     }
@@ -106,7 +105,7 @@ function generateJoinGameEmbed(playerIds, creator, startTime) {
     return new discord_js_1.MessageEmbed(embeds_1.JOIN_GAME_EMBED)
         .setAuthor("Game started by " + creator)
         .addField("players:", playerIds.length > 0 ? playerIds.map(id => `<@${id}>`).join(", ") : "none", true)
-        .addField("start:", startTime === -1 ? "waiting" : `<t:${startTime.toFixed(0)}:R>`, true);
+        .addField("start:", startTime === -1 ? "waiting" : `<t:${Math.round(startTime / 1000)}:R>`, true);
 }
 function getAllUnoCards() {
     const allCards = [];
@@ -233,19 +232,25 @@ async function playCard(interaction, cardIndex, cardColor) {
         await interaction.editReply("You win!");
         await interaction.followUp({ embeds: [new discord_js_1.MessageEmbed(embeds_1.WIN_EMBED).setAuthor(`congratulations ${interaction.user.username},`)] });
         if (interaction.channel.isThread()) {
-            await interaction.channel.setLocked(true);
+            await interaction.channel.setArchived(true);
             exports.runningGames.splice(exports.runningGames.findIndex(gme => gme.threadId === interaction.channelId), 1);
         }
         return;
     }
     // set next player
-    gameObject.gameState.upNow = (gameObject.gameState.upNow + gameObject.gameState.playingDirection) % gameObject.players.length;
+    gameObject.gameState.upNow = (gameObject.gameState.upNow + gameObject.players.length + gameObject.gameState.playingDirection) % gameObject.players.length;
     const nextPlayerId = gameObject.players[gameObject.gameState.upNow];
     // special effects
     //TODO +2 stacking
     switch (card.type) {
         case images_1.UnoType.SKIP: {
-            gameObject.gameState.upNow = (gameObject.gameState.upNow + gameObject.gameState.playingDirection) % gameObject.players.length;
+            gameObject.gameState.upNow = (gameObject.gameState.upNow + gameObject.players.length + gameObject.gameState.playingDirection) % gameObject.players.length;
+            // 0, 1
+            // -1 -> 1
+            // -1 + 2 -> 1
+            // 0, 1, 2, 3
+            // -1 -> 3
+            // -1 + 4 -> 3
             break;
         }
         case images_1.UnoType.REVERSE: {
@@ -254,10 +259,12 @@ async function playCard(interaction, cardIndex, cardColor) {
         }
         case images_1.UnoType.DRAW_TWO: {
             gameObject.gameState.handCards[nextPlayerId].push(...takeRandomCards(2, gameObject.gameState.cardsInStack, getAllUnoCards));
+            await interaction.channel.send({ embeds: [new discord_js_1.MessageEmbed(embeds_1.BASE_EMB).setDescription(`<@${nextPlayerId}> you need to draw 2 cards. Do so by clicking :flower_playing_cards: \`hand cards\`!`)] });
             break;
         }
         case images_1.UnoType.WILD_DRAW_FOUR: {
             gameObject.gameState.handCards[nextPlayerId].push(...takeRandomCards(4, gameObject.gameState.cardsInStack, getAllUnoCards));
+            await interaction.channel.send({ embeds: [new discord_js_1.MessageEmbed(embeds_1.BASE_EMB).setDescription(`<@${nextPlayerId}> you need to draw 4 cards. Do so by clicking :flower_playing_cards: \`hand cards\`!`)] });
             break;
         }
     }
@@ -275,7 +282,7 @@ function giveCardsToPlayer(playerId, thread, count) {
     gameObject.gameState.cardsTaken[playerId] += count;
 }
 exports.giveCardsToPlayer = giveCardsToPlayer;
-function isAllowedToPlay(interaction) {
+function isAllowedToPlay(interaction, skipUnoWait = false) {
     // needs to be a thread
     // nedds to be in a game
     if (!isGameThread(interaction.channelId) || !interaction.channel.isThread())
@@ -286,7 +293,7 @@ function isAllowedToPlay(interaction) {
         return interaction.reply({ embeds: [new discord_js_1.MessageEmbed(embeds_1.ERR_BASE).setDescription("It's not your turn")], ephemeral: true });
     //? needs to have enough cards
     // not waiting for uno
-    if (gameState.waitingForUno)
+    if (!skipUnoWait && gameState.waitingForUno)
         return interaction.reply({ embeds: [new discord_js_1.MessageEmbed(embeds_1.ERR_BASE).setDescription("You need to call uno")], ephemeral: true });
     // latest card message
     if (gameState.cardDisplayIds[interaction.user.id] !== interaction.message.id)
