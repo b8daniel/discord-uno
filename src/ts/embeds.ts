@@ -44,10 +44,8 @@ export const GAME_CONTROL_COMPONENTS: MessageOptionComponents = [
 export const JOIN_GAME_EMBED = new MessageEmbed(BASE_EMB)
   .setDescription("Join the thread to join the game!");
 
-export const INGAME_DASHBOARD = new MessageEmbed()
-  .setImage("attachment://test.jpg")
-  .setTitle("Waiting for game to start.")
-  .setDescription("Get your hand cards ready while you wait.");
+export const INGAME_OVERVIEW = new MessageEmbed()
+  .setImage("attachment://overview.png");
 
 export const INGAME_COMPONENTS: MessageOptionComponents = [
   new MessageActionRow().addComponents(
@@ -59,7 +57,6 @@ export const HAND_CARD_COMPONENTS: MessageOptionComponents = [
   new MessageActionRow().addComponents(
     new MessageButton().setStyle("DANGER").setEmoji("💥").setLabel("uno").setCustomId("uno-calluno"),
     new MessageButton().setStyle("SECONDARY").setLabel("take a card").setCustomId("uno-takecard"),
-    new MessageButton().setStyle("SECONDARY").setLabel("can't put a card").setCustomId("uno-putnocard").setDisabled(true)
+    new MessageButton().setStyle("SECONDARY").setLabel("can't put a card").setCustomId("uno-putnocard"),
   )
 ];
-

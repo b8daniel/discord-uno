@@ -18,29 +18,22 @@ class UNOButtons {
             return interaction.reply({ embeds: [embeds_1.BASE_EMB.setDescription(`You are currently playing in <#${currentlyPlaying.threadId}>`)], ephemeral: true });
         if (!(interaction.channel instanceof discord_js_1.TextChannel))
             return interaction.reply({ embeds: [embeds_1.ERR_BASE.setFooter("The game channel should be a text-channel")] });
-        const gameThread = await (0, games_1.createGame)(interaction.user, interaction.channel);
-        interaction.reply({ embeds: [embeds_1.BASE_EMB.setDescription(`started new game in ${gameThread}`)], ephemeral: true });
+        await (0, games_1.createGame)(interaction.user, interaction.channel);
+        interaction.deferUpdate();
     }
     async giveCards(interaction) {
-        if (!(0, games_1.isGameThread)(interaction.channelId))
-            return interaction.reply({ embeds: [new discord_js_1.MessageEmbed(embeds_1.ERR_BASE).setFooter("this isn't an active game thread")] });
-        await interaction.deferReply({ ephemeral: true });
-        const cards = (0, games_1.getHandCardsForPlayer)(interaction.user.id, interaction.channelId);
-        cards.sort((a, b) => (a.color - b.color) !== 0 ? a.color - b.color : a.type - b.type);
-        const cardsFile = new discord_js_1.MessageAttachment((await (0, images_1.generateCards)(cards)).toBuffer("image/png"), "handcards.png");
-        const cardSelector = new discord_js_1.MessageActionRow().addComponents(new discord_js_1.MessageSelectMenu().setCustomId("uno-placecard").setPlaceholder("place a card").addOptions(cards.filter((card, i) => i === cards.findIndex((card1 => card1.type === card.type && card1.color === card.color)))
-            .map((card, i) => ({
-            label: `${unoColorEmojis[card.color]}: ${unoTypeNames[card.type]}`,
-            value: String(i),
-        }))));
-        const cardDisplay = await interaction.editReply({ files: [cardsFile], components: [cardSelector, ...embeds_1.HAND_CARD_COMPONENTS,] });
-        (0, games_1.setCardDisplayForPlayer)(interaction.user.id, cardDisplay.id, interaction.channelId);
+        if (!(0, games_1.isGameThread)(interaction.channelId) || !interaction.channel.isThread())
+            return interaction.reply({ embeds: [new discord_js_1.MessageEmbed(embeds_1.ERR_BASE).setFooter("this isn't an active game thread")], ephemeral: true });
+        await interaction.reply({ content: "your cards", ephemeral: true });
+        await (0, games_1.updateHandCards)(interaction);
     }
     async placeCard(interaction) {
-        if (!(0, games_1.isGameThread)(interaction.channelId))
+        if (!(0, games_1.isGameThread)(interaction.channelId) || !interaction.channel.isThread())
             return interaction.reply({ embeds: [new discord_js_1.MessageEmbed(embeds_1.ERR_BASE).setFooter("this isn't an active game thread")], ephemeral: true });
         const gameObject = (0, games_1.getGameFromThread)(interaction.channelId);
         const gameState = gameObject.gameState;
+        if (gameState.cardDisplayIds[interaction.user.id] !== interaction.message.id)
+            return interaction.reply({ embeds: [new discord_js_1.MessageEmbed(embeds_1.ERR_BASE).setFooter("these cards are outdated")], ephemeral: true });
         const cards = gameState.handCards[interaction.user.id];
         const cardIndex = Number(interaction.values.pop());
         const selectedCard = cards[cardIndex];
@@ -50,12 +43,13 @@ class UNOButtons {
                 // valid card
                 if (selectedCard.color !== images_1.UnoColor.BLACK) {
                     // if the card is not a black card, we can play it
-                    return await (0, games_1.playCard)(interaction.user.id, interaction.channel, cardIndex);
+                    await interaction.reply({ content: "your cards:", ephemeral: true });
+                    return await (0, games_1.playCard)(interaction, cardIndex);
                 }
                 else {
                     // if the card is a black card, we need to ask the player what color they want to play it as
-                    const colorSelector = new discord_js_1.MessageActionRow().addComponents(new discord_js_1.MessageSelectMenu().setCustomId("uno-wildcolorselector").setPlaceholder("choose a color").addOptions(Object.keys(unoColorEmojis).map((color) => ({
-                        label: unoColorEmojis[color],
+                    const colorSelector = new discord_js_1.MessageActionRow().addComponents(new discord_js_1.MessageSelectMenu().setCustomId("uno-wildcolorselector").setPlaceholder("choose a color").addOptions(Object.keys(games_1.unoColorEmojis).map((color) => ({
+                        label: games_1.unoColorEmojis[color],
                         value: `${cardIndex}_${color}`,
                     }))));
                     // block further actions until the user selects a color
@@ -67,7 +61,7 @@ class UNOButtons {
             }
             else {
                 // invalid card
-                return interaction.reply({ embeds: [new discord_js_1.MessageEmbed(embeds_1.ERR_BASE).setDescription("You can't play this card")] });
+                return interaction.reply({ embeds: [new discord_js_1.MessageEmbed(embeds_1.ERR_BASE).setDescription("You can't play this card")], ephemeral: true });
             }
         }
         else {
@@ -82,13 +76,35 @@ class UNOButtons {
         interaction.reply({ embeds: [new discord_js_1.MessageEmbed(embeds_1.BASE_EMB).setDescription("called UNO!")], ephemeral: true });
     }
     async takeCard(interaction) {
-        if (!(0, games_1.isGameThread)(interaction.channelId))
+        if (!(0, games_1.isGameThread)(interaction.channelId) || !interaction.channel.isThread())
             return interaction.reply({ embeds: [new discord_js_1.MessageEmbed(embeds_1.ERR_BASE).setFooter("this isn't an active game thread")], ephemeral: true });
-        interaction.
-        ;
+        const gameObject = (0, games_1.getGameFromThread)(interaction.channelId);
+        if (gameObject.players[gameObject.gameState.upNow] !== interaction.user.id)
+            return interaction.reply({ embeds: [new discord_js_1.MessageEmbed(embeds_1.ERR_BASE).setDescription("It's not your turn")], ephemeral: true });
+        if (gameObject.gameState.cardsTaken[interaction.user.id] > 0)
+            return interaction.reply({ embeds: [new discord_js_1.MessageEmbed(embeds_1.ERR_BASE).setDescription("You already took a card")], ephemeral: true });
+        (0, games_1.giveCardsToPlayer)(interaction.user.id, interaction.channel, 1);
+        await interaction.deferReply({ ephemeral: true });
+        await (0, games_1.updateHandCards)(interaction);
+        await (0, games_1.updateOverview)(interaction.channel);
     }
     async putNoCard(interaction) {
-        interaction.reply({ embeds: [new discord_js_1.MessageEmbed(embeds_1.BASE_EMB).setDescription("put no card!")], ephemeral: true });
+        if (!(0, games_1.isGameThread)(interaction.channelId) || !interaction.channel.isThread())
+            return interaction.reply({ embeds: [new discord_js_1.MessageEmbed(embeds_1.ERR_BASE).setFooter("this isn't an active game thread")], ephemeral: true });
+        const gameObject = (0, games_1.getGameFromThread)(interaction.channelId);
+        if (gameObject.players[gameObject.gameState.upNow] === interaction.user.id) {
+            if (gameObject.gameState.cardsTaken[interaction.user.id] > 0) {
+                gameObject.gameState.upNow = (gameObject.gameState.upNow + gameObject.gameState.playingDirection) % gameObject.players.length;
+                gameObject.gameState.cardsTaken[interaction.user.id] = 0;
+                interaction.deferUpdate();
+            }
+            else {
+                interaction.reply({ embeds: [new discord_js_1.MessageEmbed(embeds_1.ERR_BASE).setDescription("You can't skip if you didn't take a card")], ephemeral: true });
+            }
+        }
+        else {
+            interaction.reply({ embeds: [new discord_js_1.MessageEmbed(embeds_1.ERR_BASE).setDescription("It's not your turn")], ephemeral: true });
+        }
     }
 }
 __decorate([

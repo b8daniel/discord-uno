@@ -1,11 +1,35 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.giveCardsToPlayer = exports.takeCard = exports.playCard = exports.updateHandCards = exports.updateOverview = exports.getCardDisplayForPlayer = exports.setCardDisplayForPlayer = exports.endGame = exports.getHandCardsForPlayer = exports.onGameMembersUpdate = exports.isGameThread = exports.createGame = exports.getGameFromThread = exports.getGamefromUser = exports.runningGames = void 0;
+exports.giveCardsToPlayer = exports.playCard = exports.updateHandCards = exports.updateOverview = exports.endGame = exports.getHandCardsForPlayer = exports.onGameMembersUpdate = exports.isGameThread = exports.createGame = exports.getGameFromThread = exports.getGamefromUser = exports.unoTypeNames = exports.unoColorEmojis = exports.runningGames = void 0;
 const discord_js_1 = require("discord.js");
 const embeds_1 = require("./embeds");
 const images_1 = require("./images");
 exports.runningGames = [];
 let nextGameId = 0;
+exports.unoColorEmojis = {
+    [images_1.UnoColor.RED]: "🟥",
+    [images_1.UnoColor.BLUE]: "🟦",
+    [images_1.UnoColor.GREEN]: "🟩",
+    [images_1.UnoColor.YELLOW]: "🟨",
+    [images_1.UnoColor.BLACK]: "⬛",
+};
+exports.unoTypeNames = {
+    [images_1.UnoType.ZERO]: "0",
+    [images_1.UnoType.ONE]: "1",
+    [images_1.UnoType.TWO]: "2",
+    [images_1.UnoType.THREE]: "3",
+    [images_1.UnoType.FOUR]: "4",
+    [images_1.UnoType.FIVE]: "5",
+    [images_1.UnoType.SIX]: "6",
+    [images_1.UnoType.SEVEN]: "7",
+    [images_1.UnoType.EIGHT]: "8",
+    [images_1.UnoType.NINE]: "9",
+    [images_1.UnoType.DRAW_TWO]: "Draw 2",
+    [images_1.UnoType.REVERSE]: "Reverse",
+    [images_1.UnoType.SKIP]: "Skip",
+    [images_1.UnoType.WILD]: "Wild",
+    [images_1.UnoType.WILD_DRAW_FOUR]: "Wild Draw 4",
+};
 function getGamefromUser(userId) {
     return exports.runningGames.find(gme => gme.players.includes(userId));
 }
@@ -23,37 +47,29 @@ async function createGame(creator, channel) {
         autoArchiveDuration: 60,
         reason: `<@${creator.id}> started a new game!`,
     });
-    await newThread.members.add(creator);
     const unoCardStack = getAllUnoCards();
-    const handCards = takeRandomCards(7, unoCardStack, getAllUnoCards);
     const newGameData = {
         gameId: nextGameId++,
         infoMessageId: infoMessage.id,
-        overviewMessageId: "",
+        overviewMessageId: null,
         creator: creator.username,
         startTime: -1,
-        players: [
-            creator.id
-        ],
+        players: [],
         threadId: newThread.id,
         running: false,
         gameState: {
             cardsInStack: unoCardStack,
-            handCards: {
-                [creator.id]: handCards,
-            },
+            handCards: {},
             lastPlayedCards: takeRandomCards(1, unoCardStack, getAllUnoCards),
             upNow: 0,
             stats: {},
             playingDirection: 1,
             cardDisplayIds: {},
+            cardsTaken: {},
         }
     };
     exports.runningGames.push(newGameData);
-    const overviewFile = new discord_js_1.MessageAttachment((await overviewFromGameData(newGameData, channel.client)).toBuffer("image/png"), "overview.png");
-    const overviewMessage = await newThread.send({ files: [overviewFile], components: embeds_1.INGAME_COMPONENTS });
-    newGameData.overviewMessageId = overviewMessage.id;
-    return newThread;
+    await newThread.members.add(creator);
 }
 exports.createGame = createGame;
 function isGameThread(threadId) {
@@ -73,8 +89,9 @@ async function onGameMembersUpdate(thread, newMembers) {
         });
         const threadMessage = await thread.fetchStarterMessage();
         await threadMessage.edit({ embeds: [generateJoinGameEmbed(gameObject.players, gameObject.creator, 100000000)] });
+        // update the game overview
+        await updateOverview(thread);
     }
-    // update the game overview
 }
 exports.onGameMembersUpdate = onGameMembersUpdate;
 function generateJoinGameEmbed(playerIds, creator, startTime) {
@@ -103,13 +120,13 @@ function takeRandomCards(count, cards, newStack) {
     }
     return takenCards;
 }
-function overviewFromGameData(data, client) {
+async function overviewFromGameData(data, client) {
     return (0, images_1.generateOverview)({
         playedCards: data.gameState.lastPlayedCards,
-        players: data.players.map(plId => ({
+        players: await Promise.all(data.players.map(async (plId) => ({
             cardsLeft: data.gameState.handCards[plId].length,
-            name: client.users.cache.find(usr => usr.id === plId).username
-        })),
+            name: (await client.users.fetch(plId)).username
+        }))),
         playingDirection: data.gameState.playingDirection,
         upNow: data.gameState.upNow,
     });
@@ -126,44 +143,46 @@ async function endGame(threadId) {
     exports.runningGames.splice(gameObjectIndex, 1);
 }
 exports.endGame = endGame;
-function setCardDisplayForPlayer(playerId, cardDisplayId, threadId) {
-    const gameObject = exports.runningGames.find(gme => gme.threadId === threadId);
-    if (!gameObject)
-        return;
-    gameObject.gameState.cardDisplayIds[playerId] = cardDisplayId;
-}
-exports.setCardDisplayForPlayer = setCardDisplayForPlayer;
-function getCardDisplayForPlayer(playerId, threadId) {
-    const gameObject = exports.runningGames.find(gme => gme.threadId === threadId);
-    if (!gameObject)
-        return;
-    return gameObject.gameState.cardDisplayIds[playerId];
-}
-exports.getCardDisplayForPlayer = getCardDisplayForPlayer;
 async function updateOverview(thread) {
     const gameObject = exports.runningGames.find(gme => gme.threadId === thread.id);
     if (!gameObject)
         return;
     const overviewFile = new discord_js_1.MessageAttachment((await overviewFromGameData(gameObject, thread.client)).toBuffer("image/png"), "overview.png");
-    await thread.messages.fetch(gameObject.overviewMessageId).then(msg => msg.edit({ files: [overviewFile], components: embeds_1.INGAME_COMPONENTS }));
+    if (gameObject.overviewMessageId) {
+        await thread.messages.fetch(gameObject.overviewMessageId).then(msg => msg.delete());
+    }
+    const newMessage = await thread.send({ files: [overviewFile], components: embeds_1.INGAME_COMPONENTS });
+    gameObject.overviewMessageId = newMessage.id;
 }
 exports.updateOverview = updateOverview;
-async function updateHandCards(playerId, thread) {
-    const gameObject = exports.runningGames.find(gme => gme.threadId === thread.id);
+//asdasd
+async function updateHandCards(interaction) {
+    const gameObject = exports.runningGames.find(gme => gme.threadId === interaction.channelId);
     if (!gameObject)
         return;
-    const cards = getHandCardsForPlayer(playerId, thread.id);
+    //! Uncaught DiscordAPIError: Unknown Message
+    // const oldCardDisplayId = gameObject.gameState.cardDisplayIds[interaction.user.id];
+    // if (oldCardDisplayId) {
+    //   await interaction.channel.messages.fetch(oldCardDisplayId).then(msg => msg.edit({ components: [] }));
+    // }
+    const cards = getHandCardsForPlayer(interaction.user.id, interaction.channelId);
     cards.sort((a, b) => (a.color - b.color) !== 0 ? a.color - b.color : a.type - b.type);
-    const cardFile = new discord_js_1.MessageAttachment((await getHandCardsForPlayer(playerId, gameObject)).toBuffer("image/png"), "handCards.png");
-    await thread.messages.fetch(gameObject.gameState.cardDisplayIds[playerId]).then(msg => msg.edit({ files: [cardFile], components: [embeds_1.HAND_CARD_COMPONENTS] }));
+    const cardsFile = new discord_js_1.MessageAttachment((await (0, images_1.generateCards)(cards)).toBuffer("image/png"), "handcards.png");
+    const cardSelector = new discord_js_1.MessageActionRow().addComponents(new discord_js_1.MessageSelectMenu().setCustomId("uno-placecard").setPlaceholder("place a card").addOptions(cards.filter((card, i) => i === cards.findIndex((card1 => card1.type === card.type && card1.color === card.color)))
+        .map((card, i) => ({
+        label: `${exports.unoColorEmojis[card.color]}: ${exports.unoTypeNames[card.type]}`,
+        value: String(i),
+    }))));
+    gameObject.gameState.cardDisplayIds[interaction.user.id] = (await interaction.editReply({ files: [cardsFile], components: [cardSelector, ...embeds_1.HAND_CARD_COMPONENTS] })).id;
 }
 exports.updateHandCards = updateHandCards;
-async function playCard(playerId, thread, cardIndex, cardColor) {
-    const gameObject = exports.runningGames.find(gme => gme.threadId === thread.id);
-    if (!gameObject)
+//TODO respond to interaction with overview
+async function playCard(interaction, cardIndex, cardColor) {
+    const gameObject = exports.runningGames.find(gme => gme.threadId === interaction.channelId);
+    if (!gameObject || !interaction.channel.isThread())
         return;
     // remove card from hand
-    const card = gameObject.gameState.handCards[playerId].splice(cardIndex, 1)[0];
+    const card = gameObject.gameState.handCards[interaction.user.id].splice(cardIndex, 1)[0];
     card.color = cardColor ?? card.color;
     // add card to last played cards
     gameObject.gameState.lastPlayedCards.push(card);
@@ -171,22 +190,18 @@ async function playCard(playerId, thread, cardIndex, cardColor) {
         gameObject.gameState.lastPlayedCards.shift();
     // set next player
     gameObject.gameState.upNow = (gameObject.gameState.upNow + gameObject.gameState.playingDirection) % gameObject.players.length;
-    await updateOverview(thread);
+    gameObject.gameState.cardsTaken[interaction.user.id] = 0;
+    await updateHandCards(interaction);
+    await updateOverview(interaction.channel);
 }
 exports.playCard = playCard;
-async function takeCard(playerId, thread) {
-    const gameObject = exports.runningGames.find(gme => gme.threadId === thread.id);
-    if (!gameObject)
-        return;
-    const takenCards = takeRandomCards(1, gameObject.gameState.cardsInStack, getAllUnoCards);
-    gameObject.gameState.handCards[playerId].push(...takenCards);
-    // await updateOverview(thread);
-}
-exports.takeCard = takeCard;
-async function giveCardsToPlayer(playerId, thread, count) {
+function giveCardsToPlayer(playerId, thread, count) {
     const gameObject = exports.runningGames.find(gme => gme.threadId === thread.id);
     if (!gameObject)
         return;
     gameObject.gameState.handCards[playerId].push(...takeRandomCards(count, gameObject.gameState.cardsInStack, getAllUnoCards));
+    if (!gameObject.gameState.cardsTaken[playerId])
+        gameObject.gameState.cardsTaken[playerId] = 0;
+    gameObject.gameState.cardsTaken[playerId] += count;
 }
 exports.giveCardsToPlayer = giveCardsToPlayer;

@@ -36,5 +36,6 @@ exports.client.on("threadDelete", async (thread) => {
     if ((0, games_1.isGameThread)(thread.id))
         await (0, games_1.endGame)(thread.id);
 });
+exports.client.on("error", console.error);
 exports.client.login(config_1.token);
 // https://discord.com/api/oauth2/authorize?client_id=902616076196651058&scope=bot%20applications.commands&permissions=534790925376
