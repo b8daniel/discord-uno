@@ -26,14 +26,14 @@ type ImageAsset = {
 
 const ImageAssets: Record<AssetPathNames, ImageAsset> = {
   CARDS_BG: {
-    width: 70,
-    height: 80,
-    path: "assets/images/cardsHolding.png"
+    width: 23,
+    height: 28,
+    path: "assets/images/cardsHolding-2.png"
   },
   CARDS_ALL: {
-    width: 1545, // 15 cards wide
-    height: 815, // 5 cards high
-    path: "assets/images/cards.png"
+    width: 515, // 15 cards wide
+    height: 272, // 5 cards high
+    path: "assets/images/cards-2.png"
   },
   CARD: {
     width: 103,
@@ -80,13 +80,13 @@ export enum UnoType {
   WILD,
 }
 
-const padding = 30;
-const fontSize = 40;
-const centerWidth = 250;
-const cardsBgYAdjust = 5;
+const padding = 10;
+const fontSize = 20;
+const centerWidth = 100;
+const cardsBgYAdjust = 2;
 
 export async function generateOverview(params: OverviewData) {
-  const [widht, height] = [930, 360];
+  const [widht, height] = [403, 156];
   const canvas = createCanvas(widht, height);
 
   const ctx = canvas.getContext("2d");
