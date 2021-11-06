@@ -67,7 +67,7 @@ async function createGame(creator, channel) {
             // [{ color: UnoColor.BLACK, type: UnoType.WILD }],
             upNow: 0,
             stats: {},
-            playingDirection: 1,
+            playingDirection: -1,
             cardDisplayIds: {},
             cardsTaken: {},
         }

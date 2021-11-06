@@ -4,9 +4,9 @@ exports.generateCards = exports.generateOverview = exports.UnoType = exports.Uno
 const canvas_1 = require("canvas");
 const ImageAssets = {
     CARDS_BG: {
-        width: 70,
-        height: 80,
-        path: "assets/images/cardsHolding.png"
+        width: 23,
+        height: 28,
+        path: "assets/images/cardsHolding-2.png"
     },
     CARDS_ALL: {
         width: 1545,
@@ -57,12 +57,12 @@ var UnoType;
     UnoType[UnoType["WILD_DRAW_FOUR"] = 13] = "WILD_DRAW_FOUR";
     UnoType[UnoType["WILD"] = 14] = "WILD";
 })(UnoType = exports.UnoType || (exports.UnoType = {}));
-const padding = 30;
-const fontSize = 40;
-const centerWidth = 250;
-const cardsBgYAdjust = 5;
+const padding = 10;
+const fontSize = 20;
+const centerWidth = 100;
+const cardsBgYAdjust = 2;
 async function generateOverview(params) {
-    const [widht, height] = [930, 360];
+    const [widht, height] = [403, 156];
     const canvas = (0, canvas_1.createCanvas)(widht, height);
     const ctx = canvas.getContext("2d");
     ctx.fillStyle = ColorScheme.GRAY_1; // background color
@@ -105,13 +105,15 @@ async function generateOverview(params) {
     return canvas;
 }
 exports.generateOverview = generateOverview;
+const cardWidth = 55;
+const cardHeight = 87;
 //TODO produced Image may be smaller, scale down for faster computation and load times in discord 
 async function generateCards(cards) {
     //* 12 cards per row!
     const nRows = Math.ceil(cards.length / 12);
     const [widht, height] = [
-        ImageAssets.CARD.width * 12 + padding * 3.1,
-        padding * 2 + ImageAssets.CARD.height * nRows + padding * 0.1 * (nRows - 1)
+        cardWidth * 12 + padding * 3.1,
+        padding * 2 + cardHeight * nRows + padding * 0.1 * (nRows - 1)
     ];
     const canvas = (0, canvas_1.createCanvas)(widht, height);
     const ctx = canvas.getContext("2d");
@@ -119,7 +121,7 @@ async function generateCards(cards) {
     ctx.fillRect(0, 0, widht, height);
     const allCards = await (0, canvas_1.loadImage)(ImageAssets.CARDS_ALL.path);
     cards.forEach((card, i) => {
-        ctx.drawImage(allCards, card.type * ImageAssets.CARD.width, card.color * ImageAssets.CARD.height, ImageAssets.CARD.width, ImageAssets.CARD.height, padding + (i % 12) * ImageAssets.CARD.width + (i % 12) * padding * 0.1, padding + Math.floor(i / 12) * (ImageAssets.CARD.height + padding * 0.1), ImageAssets.CARD.width, ImageAssets.CARD.height);
+        ctx.drawImage(allCards, card.type * ImageAssets.CARD.width, card.color * ImageAssets.CARD.height, ImageAssets.CARD.width, ImageAssets.CARD.height, padding + (i % 12) * cardWidth + (i % 12) * padding * 0.1, padding + Math.floor(i / 12) * (cardHeight + padding * 0.1), cardWidth, cardHeight);
     });
     return canvas;
 }

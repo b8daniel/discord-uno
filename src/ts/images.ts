@@ -31,9 +31,9 @@ const ImageAssets: Record<AssetPathNames, ImageAsset> = {
     path: "assets/images/cardsHolding-2.png"
   },
   CARDS_ALL: {
-    width: 515, // 15 cards wide
-    height: 272, // 5 cards high
-    path: "assets/images/cards-2.png"
+    width: 1545, // 15 cards wide
+    height: 815, // 5 cards high
+    path: "assets/images/cards.png"
   },
   CARD: {
     width: 103,
@@ -144,13 +144,16 @@ export async function generateOverview(params: OverviewData) {
   return canvas;
 }
 
+const cardWidth = 55;
+const cardHeight = 87;
+
 //TODO produced Image may be smaller, scale down for faster computation and load times in discord 
 export async function generateCards(cards: UnoCard[]) {
   //* 12 cards per row!
   const nRows = Math.ceil(cards.length / 12);
   const [widht, height] = [
-    ImageAssets.CARD.width * 12 + padding * 3.1,
-    padding * 2 + ImageAssets.CARD.height * nRows + padding * 0.1 * (nRows - 1)
+    cardWidth * 12 + padding * 3.1,
+    padding * 2 + cardHeight * nRows + padding * 0.1 * (nRows - 1)
   ];
 
   const canvas = createCanvas(widht, height);
@@ -163,9 +166,9 @@ export async function generateCards(cards: UnoCard[]) {
 
   cards.forEach((card, i) => {
     ctx.drawImage(allCards, card.type * ImageAssets.CARD.width, card.color * ImageAssets.CARD.height, ImageAssets.CARD.width, ImageAssets.CARD.height,
-      padding + (i % 12) * ImageAssets.CARD.width + (i % 12) * padding * 0.1,
-      padding + Math.floor(i / 12) * (ImageAssets.CARD.height + padding * 0.1),
-      ImageAssets.CARD.width, ImageAssets.CARD.height);
+      padding + (i % 12) * cardWidth + (i % 12) * padding * 0.1,
+      padding + Math.floor(i / 12) * (cardHeight + padding * 0.1),
+      cardWidth, cardHeight);
   });
 
   return canvas;

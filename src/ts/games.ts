@@ -97,7 +97,7 @@ export async function createGame(creator: User, channel: TextChannel) {
       // [{ color: UnoColor.BLACK, type: UnoType.WILD }],
       upNow: 0,
       stats: {},
-      playingDirection: 1 as const,
+      playingDirection: -1 as const,
       cardDisplayIds: {},
       cardsTaken: {},
     }
