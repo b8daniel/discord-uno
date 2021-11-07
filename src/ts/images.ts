@@ -101,7 +101,7 @@ export async function generateOverview(params: OverviewData) {
 
   params.players.forEach((pl, i, arr) => {
 
-    ctx.fillStyle = i === params.upNow ? ColorScheme.WHITE_1 : ColorScheme.WHITE_0; // font color
+    ctx.fillStyle = i === params.upNow ? ColorScheme.NITRO : ColorScheme.WHITE_0; // font color
 
     let cardsX = 0, baseY = 0;
 

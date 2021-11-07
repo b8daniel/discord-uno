@@ -72,7 +72,7 @@ async function generateOverview(params) {
     const maxCardNumberWidth = ImageAssets.CARDS_BG.width * 0.6;
     const cardsBg = await (0, canvas_1.loadImage)(ImageAssets.CARDS_BG.path);
     params.players.forEach((pl, i, arr) => {
-        ctx.fillStyle = i === params.upNow ? ColorScheme.WHITE_1 : ColorScheme.WHITE_0; // font color
+        ctx.fillStyle = i === params.upNow ? ColorScheme.NITRO : ColorScheme.WHITE_0; // font color
         let cardsX = 0, baseY = 0;
         if (i < (arr.length / 2)) { // on the left side
             baseY = ((height - 2 * padding) / Math.ceil(arr.length / 2)) * (i + 0.5) + padding;
