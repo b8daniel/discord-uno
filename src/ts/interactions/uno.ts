@@ -64,7 +64,13 @@ export default class UNOButtons {
   @interactionListener("uno-calluno", "MESSAGE_COMPONENT")
   async callUno(interaction: ButtonInteraction) {
     if (!(await isAllowedToPlay(interaction, true))) return;
-    interaction.reply({ embeds: [new MessageEmbed(BASE_EMB).setDescription(`<@${interaction.user.id}> called uno!`)] });
+    await interaction.reply({ embeds: [new MessageEmbed(BASE_EMB).setDescription(`<@${interaction.user.id}> called uno!`)] });
+    const unoMessage = await interaction.fetchReply();
+    if (!(unoMessage instanceof Message)) return;
+
+    setTimeout(() => {
+      unoMessage.delete();
+    }, 10000);
   }
 
   @interactionListener("uno-takecard", "MESSAGE_COMPONENT")

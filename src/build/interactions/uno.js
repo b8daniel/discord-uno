@@ -61,7 +61,13 @@ class UNOButtons {
     async callUno(interaction) {
         if (!(await (0, games_1.isAllowedToPlay)(interaction, true)))
             return;
-        interaction.reply({ embeds: [new discord_js_1.MessageEmbed(embeds_1.BASE_EMB).setDescription(`<@${interaction.user.id}> called uno!`)] });
+        await interaction.reply({ embeds: [new discord_js_1.MessageEmbed(embeds_1.BASE_EMB).setDescription(`<@${interaction.user.id}> called uno!`)] });
+        const unoMessage = await interaction.fetchReply();
+        if (!(unoMessage instanceof discord_js_1.Message))
+            return;
+        setTimeout(() => {
+            unoMessage.delete();
+        }, 10000);
     }
     async takeCard(interaction) {
         if (!(await (0, games_1.isAllowedToPlay)(interaction)) || !interaction.channel.isThread())

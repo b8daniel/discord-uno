@@ -81,7 +81,7 @@ export enum UnoType {
 }
 
 const padding = 10;
-const fontSize = 20;
+const fontSize = 18;
 const centerWidth = 100;
 const cardsBgYAdjust = 2;
 

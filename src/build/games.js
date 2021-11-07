@@ -238,6 +238,9 @@ async function playCard(interaction, cardIndex, cardColor) {
         return;
     }
     // set next player
+    if (card.type === images_1.UnoType.REVERSE) {
+        gameObject.gameState.playingDirection *= -1;
+    }
     gameObject.gameState.upNow = (gameObject.gameState.upNow + gameObject.players.length + gameObject.gameState.playingDirection) % gameObject.players.length;
     const nextPlayerId = gameObject.players[gameObject.gameState.upNow];
     // special effects
@@ -251,10 +254,6 @@ async function playCard(interaction, cardIndex, cardColor) {
             // 0, 1, 2, 3
             // -1 -> 3
             // -1 + 4 -> 3
-            break;
-        }
-        case images_1.UnoType.REVERSE: {
-            gameObject.gameState.playingDirection *= -1;
             break;
         }
         case images_1.UnoType.DRAW_TWO: {

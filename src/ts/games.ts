@@ -292,6 +292,9 @@ export async function playCard(interaction: MessageComponentInteraction, cardInd
   }
 
   // set next player
+  if (card.type === UnoType.REVERSE) {
+    gameObject.gameState.playingDirection *= -1;
+  }
   gameObject.gameState.upNow = (gameObject.gameState.upNow + gameObject.players.length + gameObject.gameState.playingDirection) % gameObject.players.length;
 
   const nextPlayerId = gameObject.players[gameObject.gameState.upNow];
@@ -307,10 +310,6 @@ export async function playCard(interaction: MessageComponentInteraction, cardInd
       // 0, 1, 2, 3
       // -1 -> 3
       // -1 + 4 -> 3
-      break;
-    }
-    case UnoType.REVERSE: {
-      gameObject.gameState.playingDirection *= -1;
       break;
     }
     case UnoType.DRAW_TWO: {
