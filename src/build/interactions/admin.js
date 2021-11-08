@@ -32,8 +32,8 @@ class AdminCommand {
                   }
                 });
         
-                interaction.reply({ embeds: [BASE_EMB.setDescription(`Updated gamechannel to <#${newChannel.id}>`)], ephemeral: true });
                 */
+                interaction.reply({ embeds: [embeds_1.BASE_EMB.setDescription(`Updated gamechannel to <#${newChannel.id}>`)], ephemeral: true });
                 if (!(newChannel instanceof discord_js_1.TextChannel))
                     return interaction.reply({ embeds: [new discord_js_1.MessageEmbed(embeds_1.ERR_BASE).setFooter("specified channel is not instanceof TextChannel")], ephemeral: true });
                 newChannel.send({ embeds: [embeds_1.GAME_CONTROLS], components: embeds_1.GAME_CONTROL_COMPONENTS });

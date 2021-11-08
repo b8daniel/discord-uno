@@ -10,7 +10,7 @@ const builders_1 = require("@discordjs/builders");
 const interactions_1 = require("../interactions");
 class PingCommand {
     async onPing(interaction) {
-        await interaction.reply("Pong :partying_face:");
+        await interaction.reply({ content: `Pong :partying_face: (${interaction.client.ws.ping}ms ping)`, ephemeral: true });
     }
     commands() {
         return [

@@ -2,7 +2,7 @@ import { SlashCommandBuilder } from "@discordjs/builders";
 import { ChannelType } from "discord-api-types";
 import { CommandInteraction, MessageEmbed, Permissions, TextChannel } from "discord.js";
 import { prisma } from "..";
-import { ERR_BASE, ERR_ONLY_AS_ADMIN, GAME_CONTROLS, GAME_CONTROL_COMPONENTS } from "../embeds";
+import { BASE_EMB, ERR_BASE, ERR_ONLY_AS_ADMIN, GAME_CONTROLS, GAME_CONTROL_COMPONENTS } from "../embeds";
 import { commandStorage, interactionListener } from "../interactions";
 
 export default class AdminCommand {
@@ -30,8 +30,8 @@ export default class AdminCommand {
           }
         });
 
-        interaction.reply({ embeds: [BASE_EMB.setDescription(`Updated gamechannel to <#${newChannel.id}>`)], ephemeral: true });
         */
+        interaction.reply({ embeds: [BASE_EMB.setDescription(`Updated gamechannel to <#${newChannel.id}>`)], ephemeral: true });
         if (!(newChannel instanceof TextChannel)) return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setFooter("specified channel is not instanceof TextChannel")], ephemeral: true });
         newChannel.send({ embeds: [GAME_CONTROLS], components: GAME_CONTROL_COMPONENTS });
         break;

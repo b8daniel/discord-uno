@@ -70,8 +70,12 @@ export default class UNOButtons {
     const unoMessage = await interaction.fetchReply();
     if (!(unoMessage instanceof Message)) return;
 
-    setTimeout(() => {
-      unoMessage.delete().catch();
+    setTimeout(async () => {
+      try {
+        await unoMessage.delete();
+      } catch (e) {
+        // thread is archived or deleted
+      }
     }, 30e3);
   }
 

@@ -4,7 +4,7 @@ exports.WIN_EMBED = exports.HAND_CARD_COMPONENTS = exports.INGAME_COMPONENTS = e
 const discord_js_1 = require("discord.js");
 exports.primaryColor = "#04F089";
 exports.ERR_BASE = new discord_js_1.MessageEmbed()
-    .setColor("RED")
+    .setColor("#ED4245")
     .setTitle("An error accoured!");
 exports.BASE_EMB = new discord_js_1.MessageEmbed()
     .setColor(exports.primaryColor);
@@ -18,11 +18,9 @@ exports.TUTORIAL_EMBED_ADMIN = new discord_js_1.MessageEmbed(exports.BASE_EMB)
 exports.TUTORIAL_EMBED_USER = new discord_js_1.MessageEmbed(exports.BASE_EMB)
     .setTitle("How to...")
     .addField("play games", "go into the gamechannel of this server and select a game to play!");
-exports.ERR_ONLY_IN_GUILD = new discord_js_1.MessageEmbed()
-    .setColor("DARK_RED")
+exports.ERR_ONLY_IN_GUILD = new discord_js_1.MessageEmbed(exports.ERR_BASE)
     .setTitle("This is only availeable in a guild.");
-exports.ERR_ONLY_AS_ADMIN = new discord_js_1.MessageEmbed()
-    .setColor("DARK_RED")
+exports.ERR_ONLY_AS_ADMIN = new discord_js_1.MessageEmbed(exports.ERR_BASE)
     .setTitle("This is only availeable for admins of a guild.");
 exports.GAME_CONTROLS = new discord_js_1.MessageEmbed(exports.BASE_EMB)
     .setTitle("⚔️ Use the button to start a game! 🎮");

@@ -6,7 +6,7 @@ export default class PingCommand {
 
   @interactionListener("ping", "APPLICATION_COMMAND")
   async onPing(interaction: CommandInteraction) {
-    await interaction.reply("Pong :partying_face:");
+    await interaction.reply({ content: `Pong :partying_face: (${interaction.client.ws.ping}ms ping)`, ephemeral: true });
   }
 
   @commandStorage()

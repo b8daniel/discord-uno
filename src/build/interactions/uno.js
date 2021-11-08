@@ -67,8 +67,13 @@ class UNOButtons {
         const unoMessage = await interaction.fetchReply();
         if (!(unoMessage instanceof discord_js_1.Message))
             return;
-        setTimeout(() => {
-            unoMessage.delete().catch();
+        setTimeout(async () => {
+            try {
+                await unoMessage.delete();
+            }
+            catch (e) {
+                // thread is archived or deleted
+            }
         }, 30e3);
     }
     async takeCard(interaction) {

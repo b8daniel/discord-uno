@@ -5,7 +5,7 @@ type MessageOptionComponents = MessageOptions["components"];
 export const primaryColor = "#04F089";
 
 export const ERR_BASE = new MessageEmbed()
-  .setColor("RED")
+  .setColor("#ED4245")
   .setTitle("An error accoured!");
 
 export const BASE_EMB = new MessageEmbed()
@@ -24,12 +24,10 @@ export const TUTORIAL_EMBED_USER = new MessageEmbed(BASE_EMB)
   .setTitle("How to...")
   .addField("play games", "go into the gamechannel of this server and select a game to play!");
 
-export const ERR_ONLY_IN_GUILD = new MessageEmbed()
-  .setColor("DARK_RED")
+export const ERR_ONLY_IN_GUILD = new MessageEmbed(ERR_BASE)
   .setTitle("This is only availeable in a guild.");
 
-export const ERR_ONLY_AS_ADMIN = new MessageEmbed()
-  .setColor("DARK_RED")
+export const ERR_ONLY_AS_ADMIN = new MessageEmbed(ERR_BASE)
   .setTitle("This is only availeable for admins of a guild.");
 
 export const GAME_CONTROLS = new MessageEmbed(BASE_EMB)
