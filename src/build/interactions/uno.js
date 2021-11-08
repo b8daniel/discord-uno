@@ -24,6 +24,8 @@ class UNOButtons {
     async giveCards(interaction) {
         if (!(0, games_1.isGameThread)(interaction.channelId) || !interaction.channel.isThread())
             return interaction.reply({ embeds: [new discord_js_1.MessageEmbed(embeds_1.ERR_BASE).setFooter("this isn't an active game thread")], ephemeral: true });
+        if (!(0, games_1.isPlaying)(interaction.user.id, interaction.channelId))
+            return interaction.reply({ embeds: [new discord_js_1.MessageEmbed(embeds_1.ERR_BASE).setDescription("You are not playing in this game")], ephemeral: true });
         await interaction.reply({ content: "your cards", ephemeral: true });
         await (0, games_1.updateHandCards)(interaction);
     }
@@ -66,8 +68,8 @@ class UNOButtons {
         if (!(unoMessage instanceof discord_js_1.Message))
             return;
         setTimeout(() => {
-            unoMessage.delete();
-        }, 10000);
+            unoMessage.delete().catch();
+        }, 30e3);
     }
     async takeCard(interaction) {
         if (!(await (0, games_1.isAllowedToPlay)(interaction)) || !interaction.channel.isThread())

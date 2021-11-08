@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.isAllowedToPlay = exports.giveCardsToPlayer = exports.playCard = exports.updateHandCards = exports.updateOverview = exports.endGame = exports.getHandCardsForPlayer = exports.onGameMembersUpdate = exports.isGameThread = exports.createGame = exports.getGameFromThread = exports.getGamefromUser = exports.unoTypeNames = exports.unoColorEmojis = exports.runningGames = void 0;
+exports.isPlaying = exports.isAllowedToPlay = exports.giveCardsToPlayer = exports.playCard = exports.updateHandCards = exports.updateOverview = exports.removeGame = exports.getHandCardsForPlayer = exports.onGameMembersUpdate = exports.isGameThread = exports.createGame = exports.getGameFromThread = exports.getGamefromUser = exports.unoTypeNames = exports.unoColorEmojis = exports.runningGames = void 0;
 const discord_js_1 = require("discord.js");
 const embeds_1 = require("./embeds");
 const images_1 = require("./images");
@@ -54,7 +54,7 @@ async function createGame(creator, channel) {
         infoMessageId: infoMessage.id,
         overviewMessageId: null,
         creator: creator.username,
-        startTime: Date.now(),
+        startTime: -1,
         players: [],
         threadId: newThread.id,
         running: false,
@@ -97,7 +97,7 @@ async function onGameMembersUpdate(thread, newMembers) {
         const threadMessage = await thread.fetchStarterMessage();
         await threadMessage.edit({ embeds: [generateJoinGameEmbed(gameObject.players, gameObject.creator, gameObject.startTime)] });
         // update the game overview
-        await updateOverview(thread);
+        await updateOverview(thread, true);
     }
 }
 exports.onGameMembersUpdate = onGameMembersUpdate;
@@ -105,7 +105,7 @@ function generateJoinGameEmbed(playerIds, creator, startTime) {
     return new discord_js_1.MessageEmbed(embeds_1.JOIN_GAME_EMBED)
         .setAuthor("Game started by " + creator)
         .addField("players:", playerIds.length > 0 ? playerIds.map(id => `<@${id}>`).join(", ") : "none", true)
-        .addField("start:", startTime === -1 ? "waiting" : `<t:${Math.round(startTime / 1000)}:R>`, true);
+        .addField("start:", startTime === -1 ? "when the first card is played" : `<t:${Math.round(startTime / 1000)}:R>`, true);
 }
 function getAllUnoCards() {
     const allCards = [];
@@ -145,18 +145,25 @@ function getHandCardsForPlayer(playerId, threadId) {
     return exports.runningGames.find(gme => gme.threadId === threadId).gameState.handCards[playerId];
 }
 exports.getHandCardsForPlayer = getHandCardsForPlayer;
-async function endGame(threadId) {
+function removeGame(threadId) {
     const gameObjectIndex = exports.runningGames.findIndex(gme => gme.threadId === threadId);
-    if (!gameObjectIndex)
+    if (gameObjectIndex === -1)
         return;
     //TODO apply stats
     exports.runningGames.splice(gameObjectIndex, 1);
 }
-exports.endGame = endGame;
-async function updateOverview(thread) {
+exports.removeGame = removeGame;
+async function updateOverview(thread, playerJoined = false) {
     const gameObject = exports.runningGames.find(gme => gme.threadId === thread.id);
     if (!gameObject)
         return;
+    if (!gameObject.running && !playerJoined) {
+        gameObject.running = true;
+        gameObject.startTime = Date.now();
+        thread.fetchStarterMessage().then(starterMessage => {
+            starterMessage.edit({ embeds: [generateJoinGameEmbed(gameObject.players, gameObject.creator, gameObject.startTime)] });
+        });
+    }
     const overviewFile = new discord_js_1.MessageAttachment((await overviewFromGameData(gameObject, thread.client)).toBuffer("image/png"), "overview.png");
     if (gameObject.overviewMessageId) {
         await thread.messages.fetch(gameObject.overviewMessageId).then(msg => msg.delete());
@@ -283,10 +290,12 @@ function giveCardsToPlayer(playerId, thread, count) {
 exports.giveCardsToPlayer = giveCardsToPlayer;
 function isAllowedToPlay(interaction, skipUnoWait = false) {
     // needs to be a thread
-    // nedds to be in a game
     if (!isGameThread(interaction.channelId) || !interaction.channel.isThread())
         return interaction.reply({ embeds: [new discord_js_1.MessageEmbed(embeds_1.ERR_BASE).setFooter("this isn't an active game thread")], ephemeral: true });
     const { gameState, players } = getGameFromThread(interaction.channelId);
+    // nedds to be in the game
+    if (!players.includes(interaction.user.id))
+        return interaction.reply({ embeds: [new discord_js_1.MessageEmbed(embeds_1.ERR_BASE).setFooter("you aren't in this game")], ephemeral: true });
     // needs to be the next player
     if (players[gameState.upNow] !== interaction.user.id)
         return interaction.reply({ embeds: [new discord_js_1.MessageEmbed(embeds_1.ERR_BASE).setDescription("It's not your turn")], ephemeral: true });
@@ -300,3 +309,10 @@ function isAllowedToPlay(interaction, skipUnoWait = false) {
     return true;
 }
 exports.isAllowedToPlay = isAllowedToPlay;
+function isPlaying(userId, channelId) {
+    const gameObject = getGameFromThread(channelId);
+    if (!gameObject)
+        return false;
+    return gameObject.players.includes(userId);
+}
+exports.isPlaying = isPlaying;

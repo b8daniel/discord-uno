@@ -5,6 +5,7 @@ exports.prisma = exports.client = void 0;
 const client_1 = require(".prisma/client");
 const discord_js_1 = require("discord.js");
 const config_1 = require("./config");
+const embeds_1 = require("./embeds");
 const games_1 = require("./games");
 const guild_1 = require("./guild");
 const interactions_1 = require("./interactions");
@@ -14,7 +15,7 @@ exports.client.on("guildCreate", guild_1.cacheGuild);
 exports.client.on("ready", async () => {
     await Promise.all(exports.client.guilds.cache.map(async (guild) => {
         await (0, guild_1.cacheGuild)(guild);
-    })).then(() => console.log("🎉cached all guilds from the db "));
+    })).then(() => console.log("🎉cached all guilds"));
     await (0, interactions_1.loadInteractions)();
     if (!process.env.SKIP_COMMAND_REGISTRATION)
         await (0, interactions_1.registerCommands)();
@@ -32,10 +33,17 @@ exports.client.on("threadMembersUpdate", async (oldMembers, newMembers) => {
         await (0, games_1.onGameMembersUpdate)(thread, newMembers);
 });
 // execute a callback when a thread is deleted
-exports.client.on("threadDelete", async (thread) => {
+exports.client.on("threadDelete", (thread) => {
     if ((0, games_1.isGameThread)(thread.id))
-        await (0, games_1.endGame)(thread.id);
+        (0, games_1.removeGame)(thread.id);
 });
-exports.client.on("error", console.error);
+exports.client.on("error", error => {
+    console.error(error);
+    exports.client.users.fetch(config_1.ownerId).then(user => user.send({
+        embeds: [
+            new discord_js_1.MessageEmbed(embeds_1.ERR_BASE).setDescription(error.message).setTitle(error.name).setTimestamp().addField("stack trace", error.stack || "unknown")
+        ]
+    })).catch();
+});
 exports.client.login(config_1.token);
 // https://discord.com/api/oauth2/authorize?client_id=902616076196651058&scope=bot%20applications.commands&permissions=534790925376

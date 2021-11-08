@@ -1,6 +1,5 @@
 import { Guild } from "discord.js";
 import { Guild as DBGuild } from ".prisma/client";
-import { prisma } from ".";
 import { ADD_EMBED } from "./embeds";
 
 const guildCache: DBGuild[] = [];
@@ -9,6 +8,8 @@ const guildCache: DBGuild[] = [];
 export async function cacheGuild(guild: Guild) {
   if (guildCache.find(g => g.guildId === guild.id)) return;
 
+  //* The database is not neccesary
+  /* 
   let prismaGuild = await prisma.guild.findUnique({
     where: {
       guildId: guild.id
@@ -25,8 +26,12 @@ export async function cacheGuild(guild: Guild) {
       }
     });
   }
+  */
 
-  guildCache.push(prismaGuild);
+  guildCache.push({
+    guildId: guild.id,
+    unoConfigId: -1,
+  });
 }
 
 export function getGuildCache(): readonly DBGuild[] {

@@ -77,7 +77,7 @@ export default class CanvasCommand {
     }
   }
 
-  @commandStorage()
+  @commandStorage(true)
   commands() {
     return [
       new SlashCommandBuilder().setName("canvas").setDescription("test out canvas functionality")

@@ -90,6 +90,6 @@ __decorate([
     (0, interactions_1.interactionListener)("canvas", "APPLICATION_COMMAND")
 ], CanvasCommand.prototype, "onCommand", null);
 __decorate([
-    (0, interactions_1.commandStorage)()
+    (0, interactions_1.commandStorage)(true)
 ], CanvasCommand.prototype, "commands", null);
 exports.default = CanvasCommand;

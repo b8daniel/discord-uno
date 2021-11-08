@@ -83,7 +83,7 @@ export async function createGame(creator: User, channel: TextChannel) {
     infoMessageId: infoMessage.id,
     overviewMessageId: null,
     creator: creator.username,
-    startTime: Date.now(),
+    startTime: -1,
     players: [],
     threadId: newThread.id,
     running: false,
@@ -129,7 +129,7 @@ export async function onGameMembersUpdate(thread: ThreadChannel, newMembers: Cli
     const threadMessage = await thread.fetchStarterMessage();
     await threadMessage.edit({ embeds: [generateJoinGameEmbed(gameObject.players, gameObject.creator, gameObject.startTime)] });
     // update the game overview
-    await updateOverview(thread);
+    await updateOverview(thread, true);
   }
 
 }
@@ -138,7 +138,7 @@ function generateJoinGameEmbed(playerIds: string[], creator: string, startTime: 
   return new MessageEmbed(JOIN_GAME_EMBED)
     .setAuthor("Game started by " + creator)
     .addField("players:", playerIds.length > 0 ? playerIds.map(id => `<@${id}>`).join(", ") : "none", true)
-    .addField("start:", startTime === -1 ? "waiting" : `<t:${Math.round(startTime / 1000)}:R>`, true);
+    .addField("start:", startTime === -1 ? "when the first card is played" : `<t:${Math.round(startTime / 1000)}:R>`, true);
 }
 
 function getAllUnoCards() {
@@ -183,18 +183,26 @@ export function getHandCardsForPlayer(playerId: string, threadId: string) {
   return runningGames.find(gme => gme.threadId === threadId).gameState.handCards[playerId];
 }
 
-export async function endGame(threadId: string) {
+export function removeGame(threadId: string) {
   const gameObjectIndex = runningGames.findIndex(gme => gme.threadId === threadId);
-  if (!gameObjectIndex) return;
+  if (gameObjectIndex === -1) return;
 
   //TODO apply stats
 
   runningGames.splice(gameObjectIndex, 1);
 }
 
-export async function updateOverview(thread: ThreadChannel) {
+export async function updateOverview(thread: ThreadChannel, playerJoined = false) {
   const gameObject = runningGames.find(gme => gme.threadId === thread.id);
   if (!gameObject) return;
+
+  if (!gameObject.running && !playerJoined) {
+    gameObject.running = true;
+    gameObject.startTime = Date.now();
+    thread.fetchStarterMessage().then(starterMessage => {
+      starterMessage.edit({ embeds: [generateJoinGameEmbed(gameObject.players, gameObject.creator, gameObject.startTime)] });
+    });
+  }
 
   const overviewFile = new MessageAttachment((await overviewFromGameData(gameObject, thread.client)).toBuffer("image/png"), "overview.png");
   if (gameObject.overviewMessageId) {
@@ -339,10 +347,11 @@ export function giveCardsToPlayer(playerId: string, thread: ThreadChannel, count
 
 export function isAllowedToPlay(interaction: MessageComponentInteraction, skipUnoWait: boolean = false) {
   // needs to be a thread
-  // nedds to be in a game
   if (!isGameThread(interaction.channelId) || !interaction.channel.isThread()) return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setFooter("this isn't an active game thread")], ephemeral: true });
 
   const { gameState, players } = getGameFromThread(interaction.channelId);
+  // nedds to be in the game
+  if (!players.includes(interaction.user.id)) return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setFooter("you aren't in this game")], ephemeral: true });
 
   // needs to be the next player
   if (players[gameState.upNow] !== interaction.user.id) return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setDescription("It's not your turn")], ephemeral: true });
@@ -353,4 +362,10 @@ export function isAllowedToPlay(interaction: MessageComponentInteraction, skipUn
   // latest card message
   if (gameState.cardDisplayIds[interaction.user.id] !== interaction.message.id) return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setFooter("these cards are outdated")], ephemeral: true });
   return true;
+}
+
+export function isPlaying(userId: string, channelId: string): boolean {
+  const gameObject = getGameFromThread(channelId);
+  if (!gameObject) return false;
+  return gameObject.players.includes(userId);
 }

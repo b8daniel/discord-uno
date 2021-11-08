@@ -15,7 +15,7 @@ export default class ThreadCleanupCommand {
     interaction.reply({ embeds: [new MessageEmbed(BASE_EMB).setDescription("cleaning up the threads? (not workin dont't worry bout it)")], ephemeral: true });
   }
 
-  @commandStorage()
+  @commandStorage(true)
   commands(): SlashCommandBuilder[] {
     return [
       new SlashCommandBuilder().setName("threadcleanup").setDescription("removes archived game threads"),

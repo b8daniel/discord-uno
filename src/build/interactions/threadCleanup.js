@@ -29,6 +29,6 @@ __decorate([
     (0, interactions_1.interactionListener)("threadcleanup", "APPLICATION_COMMAND")
 ], ThreadCleanupCommand.prototype, "onThreadCleanup", null);
 __decorate([
-    (0, interactions_1.commandStorage)()
+    (0, interactions_1.commandStorage)(true)
 ], ThreadCleanupCommand.prototype, "commands", null);
 exports.default = ThreadCleanupCommand;

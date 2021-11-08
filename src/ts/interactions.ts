@@ -6,7 +6,6 @@ import { clientId, devServerId, token } from "./config";
 import { InteractionListener } from "./types";
 import { readdir } from "fs/promises";
 import * as pathUtils from "path";
-import { getGuildCache } from "./guild";
 
 const listeners: InteractionListener[] = [];
 const commands: SlashCommandBuilder[] = [];
@@ -16,11 +15,10 @@ export async function registerCommands(statusMessage: boolean = true) {
 
   const rest = new REST({ version: '9' }).setToken(token);
 
+  //* GUILD COMMANDS
+  /*
   const guilds = getGuildCache();
   if (guilds.length === 0) console.warn("! Couldn't find any guilds from the db in the cache! Are they beeing cached before?");
-
-  /*
-  //* GUILD COMMANDS
   await Promise.all(
     guilds.map(async (guild: DBGuild) => {
       console.log(guild.guildId);
@@ -122,8 +120,9 @@ export function interactionListener(interName: string, accepts?: InteractionType
   };
 }
 
-export function commandStorage(): MethodDecorator {
+export function commandStorage(debugCommands = false): MethodDecorator {
   return (obj, symbol) => {
+    if (debugCommands && process.env.NODE_ENV !== "DEV") return;
     try {
       commands.push(...(obj[symbol]()));
     } catch (error) {

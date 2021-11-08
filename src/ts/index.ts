@@ -1,9 +1,10 @@
 // Require the necessary discord.js classes
 import { PrismaClient } from '.prisma/client';
-import { Client, Guild, Intents } from 'discord.js';
+import { Client, Guild, Intents, MessageEmbed } from 'discord.js';
 
-import { token } from "./config";
-import { endGame, isGameThread, onGameMembersUpdate } from './games';
+import { ownerId, token } from "./config";
+import { ERR_BASE } from './embeds';
+import { removeGame, isGameThread, onGameMembersUpdate } from './games';
 import { cacheGuild } from './guild';
 
 import { handleInteraction, loadInteractions, registerCommands } from './interactions';
@@ -19,7 +20,7 @@ client.on("ready", async () => {
     client.guilds.cache.map(async (guild: Guild) => {
       await cacheGuild(guild);
     })
-  ).then(() => console.log("🎉cached all guilds from the db "));
+  ).then(() => console.log("🎉cached all guilds"));
 
   await loadInteractions();
   if (!process.env.SKIP_COMMAND_REGISTRATION) await registerCommands();
@@ -43,11 +44,18 @@ client.on("threadMembersUpdate", async (oldMembers, newMembers) => {
 });
 
 // execute a callback when a thread is deleted
-client.on("threadDelete", async (thread) => {
-  if (isGameThread(thread.id)) await endGame(thread.id);
+client.on("threadDelete", (thread) => {
+  if (isGameThread(thread.id)) removeGame(thread.id);
 });
 
-client.on("error", console.error);
+client.on("error", error => {
+  console.error(error);
+  client.users.fetch(ownerId).then(user => user.send({
+    embeds: [
+      new MessageEmbed(ERR_BASE).setDescription(error.message).setTitle(error.name).setTimestamp().addField("stack trace", error.stack || "unknown")
+    ]
+  })).catch();
+});
 
 client.login(token);
 

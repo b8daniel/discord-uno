@@ -6,17 +6,15 @@ const v9_1 = require("discord-api-types/v9");
 const config_1 = require("./config");
 const promises_1 = require("fs/promises");
 const pathUtils = require("path");
-const guild_1 = require("./guild");
 const listeners = [];
 const commands = [];
 //* COMMANDS
 async function registerCommands(statusMessage = true) {
     const rest = new rest_1.REST({ version: '9' }).setToken(config_1.token);
-    const guilds = (0, guild_1.getGuildCache)();
-    if (guilds.length === 0)
-        console.warn("! Couldn't find any guilds from the db in the cache! Are they beeing cached before?");
-    /*
     //* GUILD COMMANDS
+    /*
+    const guilds = getGuildCache();
+    if (guilds.length === 0) console.warn("! Couldn't find any guilds from the db in the cache! Are they beeing cached before?");
     await Promise.all(
       guilds.map(async (guild: DBGuild) => {
         console.log(guild.guildId);
@@ -96,8 +94,10 @@ function interactionListener(interName, accepts) {
     };
 }
 exports.interactionListener = interactionListener;
-function commandStorage() {
+function commandStorage(debugCommands = false) {
     return (obj, symbol) => {
+        if (debugCommands && process.env.NODE_ENV !== "DEV")
+            return;
         try {
             commands.push(...(obj[symbol]()));
         }

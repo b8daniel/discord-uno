@@ -1,6 +1,6 @@
-import { ButtonInteraction, Interaction, Message, MessageActionRow, MessageComponentInteraction, MessageEmbed, MessageSelectMenu, SelectMenuInteraction, TextChannel, ThreadChannel } from "discord.js";
+import { ButtonInteraction, Message, MessageEmbed, SelectMenuInteraction, TextChannel } from "discord.js";
 import { BASE_EMB, ERR_BASE } from "../embeds";
-import { createGame, getGameFromThread, getGamefromUser, giveCardsToPlayer, isAllowedToPlay, isGameThread, playCard, unoColorEmojis, updateHandCards, updateOverview } from "../games";
+import { createGame, getGameFromThread, getGamefromUser, giveCardsToPlayer, isAllowedToPlay, isGameThread, isPlaying, playCard, updateHandCards, updateOverview } from "../games";
 import { UnoColor } from "../images";
 import { interactionListener } from "../interactions";
 
@@ -21,6 +21,8 @@ export default class UNOButtons {
   @interactionListener("uno-getcards", "MESSAGE_COMPONENT")
   async giveCards(interaction: ButtonInteraction) {
     if (!isGameThread(interaction.channelId) || !interaction.channel.isThread()) return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setFooter("this isn't an active game thread")], ephemeral: true });
+
+    if (!isPlaying(interaction.user.id, interaction.channelId)) return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setDescription("You are not playing in this game")], ephemeral: true });
 
     await interaction.reply({ content: "your cards", ephemeral: true });
     await updateHandCards(interaction);
@@ -69,8 +71,8 @@ export default class UNOButtons {
     if (!(unoMessage instanceof Message)) return;
 
     setTimeout(() => {
-      unoMessage.delete();
-    }, 10000);
+      unoMessage.delete().catch();
+    }, 30e3);
   }
 
   @interactionListener("uno-takecard", "MESSAGE_COMPONENT")
