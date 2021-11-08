@@ -64,7 +64,8 @@ export const WIN_EMBED = new MessageEmbed(BASE_EMB)
   .setTitle("you won!")
   .setDescription(":confetti_ball: :tada: :partying_face: :tada: :confetti_ball:");
 
-/**
- * <div class="tenor-gif-embed" data-postid="17933464" data-share-method="host" data-aspect-ratio="1.62437" data-width="100%"><a href="https://tenor.com/view/confetti-gif-17933464">Confetti GIF</a>from <a href="https://tenor.com/search/confetti-gifs">Confetti GIFs</a></div> <script type="text/javascript" async src="https://tenor.com/embed.js"></script>
- *
-  */
+export const INVITE_EMBED = new MessageEmbed(BASE_EMB)
+  .setTitle("Invite me to your server!")
+  .setDescription("You will then be able to play UNO on your server with your friends!")
+  .setURL("https://discord.com/api/oauth2/authorize?client_id=902616076196651058&scope=bot%20applications.commands&permissions=397351644160");
+

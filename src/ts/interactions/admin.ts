@@ -33,7 +33,9 @@ export default class AdminCommand {
         */
         interaction.reply({ embeds: [BASE_EMB.setDescription(`Updated gamechannel to <#${newChannel.id}>`)], ephemeral: true });
         if (!(newChannel instanceof TextChannel)) return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setFooter("specified channel is not instanceof TextChannel")], ephemeral: true });
-        newChannel.send({ embeds: [GAME_CONTROLS], components: GAME_CONTROL_COMPONENTS });
+        newChannel.send({ embeds: [GAME_CONTROLS], components: GAME_CONTROL_COMPONENTS }).then(msg => msg.pin()).catch(e => {
+          interaction.followUp({ embeds: [new MessageEmbed(ERR_BASE).setFooter("failed to send game controls.")], ephemeral: true });
+        });
         break;
       }
       /*

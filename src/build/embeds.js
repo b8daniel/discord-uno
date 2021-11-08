@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.WIN_EMBED = exports.HAND_CARD_COMPONENTS = exports.INGAME_COMPONENTS = exports.INGAME_OVERVIEW = exports.JOIN_GAME_EMBED = exports.GAME_CONTROL_COMPONENTS = exports.GAME_CONTROLS = exports.ERR_ONLY_AS_ADMIN = exports.ERR_ONLY_IN_GUILD = exports.TUTORIAL_EMBED_USER = exports.TUTORIAL_EMBED_ADMIN = exports.ADD_EMBED = exports.BASE_EMB = exports.ERR_BASE = exports.primaryColor = void 0;
+exports.INVITE_EMBED = exports.WIN_EMBED = exports.HAND_CARD_COMPONENTS = exports.INGAME_COMPONENTS = exports.INGAME_OVERVIEW = exports.JOIN_GAME_EMBED = exports.GAME_CONTROL_COMPONENTS = exports.GAME_CONTROLS = exports.ERR_ONLY_AS_ADMIN = exports.ERR_ONLY_IN_GUILD = exports.TUTORIAL_EMBED_USER = exports.TUTORIAL_EMBED_ADMIN = exports.ADD_EMBED = exports.BASE_EMB = exports.ERR_BASE = exports.primaryColor = void 0;
 const discord_js_1 = require("discord.js");
 exports.primaryColor = "#04F089";
 exports.ERR_BASE = new discord_js_1.MessageEmbed()
@@ -41,7 +41,7 @@ exports.WIN_EMBED = new discord_js_1.MessageEmbed(exports.BASE_EMB)
     .setThumbnail("https://c.tenor.com/RVfiMRcRJDoAAAAC/confetti-celebrate.gif")
     .setTitle("you won!")
     .setDescription(":confetti_ball: :tada: :partying_face: :tada: :confetti_ball:");
-/**
- * <div class="tenor-gif-embed" data-postid="17933464" data-share-method="host" data-aspect-ratio="1.62437" data-width="100%"><a href="https://tenor.com/view/confetti-gif-17933464">Confetti GIF</a>from <a href="https://tenor.com/search/confetti-gifs">Confetti GIFs</a></div> <script type="text/javascript" async src="https://tenor.com/embed.js"></script>
- *
-  */ 
+exports.INVITE_EMBED = new discord_js_1.MessageEmbed(exports.BASE_EMB)
+    .setTitle("Invite me to your server!")
+    .setDescription("You will then be able to play UNO on your server with your friends!")
+    .setURL("https://discord.com/api/oauth2/authorize?client_id=902616076196651058&scope=bot%20applications.commands&permissions=397351644160");
