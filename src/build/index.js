@@ -1,8 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.prisma = exports.client = void 0;
+exports.client = void 0;
 // Require the necessary discord.js classes
-const client_1 = require(".prisma/client");
 const discord_js_1 = require("discord.js");
 const config_1 = require("./config");
 const embeds_1 = require("./embeds");
@@ -10,7 +9,6 @@ const games_1 = require("./games");
 const guild_1 = require("./guild");
 const interactions_1 = require("./interactions");
 exports.client = new discord_js_1.Client({ intents: [discord_js_1.Intents.FLAGS.GUILDS, discord_js_1.Intents.FLAGS.GUILD_MEMBERS] });
-exports.prisma = new client_1.PrismaClient();
 exports.client.on("guildCreate", guild_1.cacheGuild);
 exports.client.on("ready", async () => {
     exports.client.user.setActivity(`/tutorial • /invite • ${config_1.sponsor}`);

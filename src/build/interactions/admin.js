@@ -8,7 +8,6 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 const builders_1 = require("@discordjs/builders");
 const discord_js_1 = require("discord.js");
-const __1 = require("..");
 const embeds_1 = require("../embeds");
 const interactions_1 = require("../interactions");
 class AdminCommand {
@@ -84,14 +83,3 @@ __decorate([
     (0, interactions_1.commandStorage)()
 ], AdminCommand.prototype, "commands", null);
 exports.default = AdminCommand;
-async function getUnoConfigId(guildId) {
-    const guild = await __1.prisma.guild.findFirst({
-        where: {
-            guildId,
-        }
-    });
-    if (!guild)
-        return null;
-    else
-        return guild.unoConfigId;
-}

@@ -1,7 +1,6 @@
 import { SlashCommandBuilder } from "@discordjs/builders";
 import { ChannelType } from "discord-api-types";
 import { CommandInteraction, MessageEmbed, Permissions, TextChannel } from "discord.js";
-import { prisma } from "..";
 import { BASE_EMB, ERR_BASE, ERR_ONLY_AS_ADMIN, GAME_CONTROLS, GAME_CONTROL_COMPONENTS } from "../embeds";
 import { commandStorage, interactionListener } from "../interactions";
 
@@ -78,14 +77,4 @@ export default class AdminCommand {
     ];
   }
 
-}
-
-async function getUnoConfigId(guildId: string): Promise<number> {
-  const guild = await prisma.guild.findFirst({
-    where: {
-      guildId,
-    }
-  });
-  if (!guild) return null;
-  else return guild.unoConfigId;
 }

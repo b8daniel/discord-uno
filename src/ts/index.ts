@@ -1,5 +1,4 @@
 // Require the necessary discord.js classes
-import { PrismaClient } from '.prisma/client';
 import { Client, Guild, Intents, MessageEmbed } from 'discord.js';
 
 import { ownerId, sponsor, token } from "./config";
@@ -10,7 +9,6 @@ import { cacheGuild } from './guild';
 import { handleInteraction, loadInteractions, registerCommands } from './interactions';
 
 export const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MEMBERS] });
-export const prisma = new PrismaClient();
 
 client.on("guildCreate", cacheGuild);
 

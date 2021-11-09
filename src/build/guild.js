@@ -28,7 +28,6 @@ async function cacheGuild(guild) {
     */
     guildCache.push({
         guildId: guild.id,
-        unoConfigId: -1,
     });
 }
 exports.cacheGuild = cacheGuild;

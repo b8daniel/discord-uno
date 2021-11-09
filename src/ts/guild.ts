@@ -1,6 +1,9 @@
 import { Guild } from "discord.js";
-import { Guild as DBGuild } from ".prisma/client";
 import { ADD_EMBED } from "./embeds";
+
+type DBGuild = {
+  guildId: string;
+};
 
 const guildCache: DBGuild[] = [];
 
@@ -30,7 +33,6 @@ export async function cacheGuild(guild: Guild) {
 
   guildCache.push({
     guildId: guild.id,
-    unoConfigId: -1,
   });
 }
 
