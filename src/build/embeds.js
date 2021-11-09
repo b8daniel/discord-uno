@@ -1,7 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.INVITE_EMBED = exports.WIN_EMBED = exports.HAND_CARD_COMPONENTS = exports.INGAME_COMPONENTS = exports.INGAME_OVERVIEW = exports.JOIN_GAME_EMBED = exports.GAME_CONTROL_COMPONENTS = exports.GAME_CONTROLS = exports.ERR_ONLY_AS_ADMIN = exports.ERR_ONLY_IN_GUILD = exports.TUTORIAL_EMBED_USER = exports.TUTORIAL_EMBED_ADMIN = exports.ADD_EMBED = exports.BASE_EMB = exports.ERR_BASE = exports.primaryColor = void 0;
+exports.INVITE_EMBED_BOT = exports.INVITE_EMBED_SPONSOR = exports.WIN_EMBED = exports.HAND_CARD_COMPONENTS = exports.INGAME_COMPONENTS = exports.INGAME_OVERVIEW = exports.JOIN_GAME_EMBED = exports.GAME_CONTROL_COMPONENTS = exports.GAME_CONTROLS = exports.ERR_ONLY_AS_ADMIN = exports.ERR_ONLY_IN_GUILD = exports.TUTORIAL_EMBED_USER = exports.TUTORIAL_EMBED_ADMIN = exports.ADD_EMBED = exports.BASE_EMB = exports.ERR_BASE = exports.primaryColor = void 0;
 const discord_js_1 = require("discord.js");
+const config_1 = require("./config");
 exports.primaryColor = "#04F089";
 exports.ERR_BASE = new discord_js_1.MessageEmbed()
     .setColor("#ED4245")
@@ -41,7 +42,11 @@ exports.WIN_EMBED = new discord_js_1.MessageEmbed(exports.BASE_EMB)
     .setThumbnail("https://c.tenor.com/RVfiMRcRJDoAAAAC/confetti-celebrate.gif")
     .setTitle("you won!")
     .setDescription(":confetti_ball: :tada: :partying_face: :tada: :confetti_ball:");
-exports.INVITE_EMBED = new discord_js_1.MessageEmbed(exports.BASE_EMB)
-    .setTitle("Invite me to your server!")
+exports.INVITE_EMBED_SPONSOR = new discord_js_1.MessageEmbed(exports.BASE_EMB)
+    .setTitle("Join our server!")
+    .setDescription(config_1.sponsorDescription)
+    .setURL(config_1.sponsorInvite || config_1.botInvite || "https://discord.com");
+exports.INVITE_EMBED_BOT = new discord_js_1.MessageEmbed(exports.BASE_EMB)
+    .setTitle("Add this bot to your server")
     .setDescription("You will then be able to play UNO on your server with your friends!")
-    .setURL("https://discord.com/api/oauth2/authorize?client_id=902616076196651058&scope=bot%20applications.commands&permissions=397351644160");
+    .setURL(config_1.botInvite);

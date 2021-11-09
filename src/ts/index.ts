@@ -2,7 +2,7 @@
 import { PrismaClient } from '.prisma/client';
 import { Client, Guild, Intents, MessageEmbed } from 'discord.js';
 
-import { ownerId, token } from "./config";
+import { ownerId, sponsor, token } from "./config";
 import { ERR_BASE } from './embeds';
 import { removeGame, isGameThread, onGameMembersUpdate } from './games';
 import { cacheGuild } from './guild';
@@ -15,6 +15,8 @@ export const prisma = new PrismaClient();
 client.on("guildCreate", cacheGuild);
 
 client.on("ready", async () => {
+
+  client.user.setActivity(`/tutorial • /invite • ${sponsor}`);
 
   await Promise.all(
     client.guilds.cache.map(async (guild: Guild) => {

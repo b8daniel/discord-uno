@@ -1,4 +1,5 @@
 import { MessageActionRow, MessageButton, MessageEmbed, MessageOptions } from "discord.js";
+import { botInvite, sponsorDescription, sponsorInvite } from "./config";
 
 type MessageOptionComponents = MessageOptions["components"];
 
@@ -64,8 +65,12 @@ export const WIN_EMBED = new MessageEmbed(BASE_EMB)
   .setTitle("you won!")
   .setDescription(":confetti_ball: :tada: :partying_face: :tada: :confetti_ball:");
 
-export const INVITE_EMBED = new MessageEmbed(BASE_EMB)
-  .setTitle("Invite me to your server!")
+export const INVITE_EMBED_SPONSOR = new MessageEmbed(BASE_EMB)
+  .setTitle("Join our server!")
+  .setDescription(sponsorDescription)
+  .setURL(sponsorInvite || botInvite || "https://discord.com");
+export const INVITE_EMBED_BOT = new MessageEmbed(BASE_EMB)
+  .setTitle("Add this bot to your server")
   .setDescription("You will then be able to play UNO on your server with your friends!")
-  .setURL("https://discord.com/api/oauth2/authorize?client_id=902616076196651058&scope=bot%20applications.commands&permissions=397351644160");
+  .setURL(botInvite);
 

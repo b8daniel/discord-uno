@@ -11,7 +11,7 @@ const embeds_1 = require("../embeds");
 const interactions_1 = require("../interactions");
 class InviteCommand {
     onInviteCommand(interaction) {
-        interaction.reply({ embeds: [embeds_1.INVITE_EMBED], ephemeral: true });
+        interaction.reply({ embeds: [embeds_1.INVITE_EMBED_BOT, embeds_1.INVITE_EMBED_SPONSOR], ephemeral: true });
     }
     commands() {
         return [

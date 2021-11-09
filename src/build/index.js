@@ -13,6 +13,7 @@ exports.client = new discord_js_1.Client({ intents: [discord_js_1.Intents.FLAGS.
 exports.prisma = new client_1.PrismaClient();
 exports.client.on("guildCreate", guild_1.cacheGuild);
 exports.client.on("ready", async () => {
+    exports.client.user.setActivity(`/tutorial • /invite • ${config_1.sponsor}`);
     await Promise.all(exports.client.guilds.cache.map(async (guild) => {
         await (0, guild_1.cacheGuild)(guild);
     })).then(() => console.log("🎉cached all guilds"));
