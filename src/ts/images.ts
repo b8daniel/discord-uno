@@ -1,4 +1,4 @@
-import { createCanvas, loadImage } from "canvas";
+import { createCanvas, loadImage, registerFont } from "canvas";
 
 type ImagePlayerData = {
   name: string,
@@ -81,11 +81,14 @@ export enum UnoType {
 }
 
 const padding = 10;
-const fontSize = 18;
+const fontSize = 16;
 const centerWidth = 100;
 const cardsBgYAdjust = 2;
+const cardsBgHeight = 34;
+const cardsBgWidth = 28;
 
 export async function generateOverview(params: OverviewData) {
+  registerFont("assets/font/Rubik-Bold.ttf", { family: "Rubik", weight: "bold" });
   const [widht, height] = [403, 156];
   const canvas = createCanvas(widht, height);
 
@@ -94,9 +97,9 @@ export async function generateOverview(params: OverviewData) {
   ctx.fillStyle = ColorScheme.GRAY_1; // background color
   ctx.fillRect(0, 0, widht, height);
 
-  ctx.font = `700 ${fontSize}px Poppins`;
-  const maxFontWidth = (widht - 2 * padding - centerWidth) / 2 - ImageAssets.CARDS_BG.width;
-  const maxCardNumberWidth = ImageAssets.CARDS_BG.width * 0.6;
+  ctx.font = `bold ${fontSize}px Rubik`;
+  const maxFontWidth = (widht - 2 * padding - centerWidth) / 2 - cardsBgWidth;
+  const maxCardNumberWidth = cardsBgWidth * 0.6;
   const cardsBg = await loadImage(ImageAssets.CARDS_BG.path);
 
   params.players.forEach((pl, i, arr) => {
@@ -110,7 +113,7 @@ export async function generateOverview(params: OverviewData) {
 
       ctx.fillText(pl.name, padding, baseY + fontSize / 2, maxFontWidth);
 
-      cardsX = widht / 2 - centerWidth / 2 - ImageAssets.CARDS_BG.width;
+      cardsX = widht / 2 - centerWidth / 2 - cardsBgWidth;
     } else {
       baseY = ((height - 2 * padding) / Math.floor(arr.length / 2)) * (i - Math.ceil(arr.length / 2) + 0.5) + padding;
 
@@ -120,11 +123,11 @@ export async function generateOverview(params: OverviewData) {
       cardsX = widht / 2 + centerWidth / 2;
     }
 
-    ctx.drawImage(cardsBg, cardsX, baseY - ImageAssets.CARDS_BG.height / 2 + cardsBgYAdjust);  // card Background
+    ctx.drawImage(cardsBg, cardsX, baseY - cardsBgHeight / 2 + cardsBgYAdjust, cardsBgWidth, cardsBgHeight);  // card Background
 
     ctx.fillStyle = ColorScheme.GRAY_0;
     const cardTextWidth = Math.min(ctx.measureText(pl.cardsLeft.toFixed(0)).width, maxCardNumberWidth);
-    ctx.fillText(pl.cardsLeft.toFixed(0), cardsX + (ImageAssets.CARDS_BG.width - cardTextWidth) / 2, baseY + fontSize / 2, maxCardNumberWidth); //card number
+    ctx.fillText(pl.cardsLeft.toFixed(0), cardsX + (cardsBgWidth - cardTextWidth) / 2, baseY + fontSize / 2, maxCardNumberWidth); //card number
   });
 
   const allCards = await loadImage(ImageAssets.CARDS_ALL.path);
@@ -149,6 +152,7 @@ const cardHeight = 87;
 
 //TODO produced Image may be smaller, scale down for faster computation and load times in discord 
 export async function generateCards(cards: UnoCard[]) {
+  registerFont("assets/font/Rubik-Bold.ttf", { family: "Rubik", weight: "bold" });
   //* 12 cards per row!
   const nRows = Math.ceil(cards.length / 12);
   const [widht, height] = [
