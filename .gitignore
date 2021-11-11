@@ -5,4 +5,5 @@ config.ts
 config.js
 .vscode
 sketches
-src\build
+dist
+build

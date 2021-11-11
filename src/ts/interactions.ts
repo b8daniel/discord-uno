@@ -83,7 +83,7 @@ export async function handleInteraction(interaction: Interaction) {
   }
 }
 
-export async function loadInteractions(folderPath: string = "src/build/interactions") {
+export async function loadInteractions(folderPath: string = "build/interactions") {
   const fullPath = pathUtils.resolve(folderPath);
 
   const fileNames = await readdir(fullPath).catch(() => {

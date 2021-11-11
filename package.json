@@ -2,7 +2,8 @@
   "name": "discord-uno",
   "version": "1.0.0",
   "description": "A discord bot to play uno with friends",
-  "main": "src/build/index.js",
+  "main": "build/index.js",
+  "bin": "build/index.js",
   "scripts": {
     "dev": "npx tsc"
   },
@@ -17,5 +18,10 @@
   },
   "devDependencies": {
     "typescript": "^4.4.4"
+  },
+  "pkg": {
+    "scripts": "build/**/*.js",
+    "assets": "assets/**/*",
+    "outputPath": "dist"
   }
 }

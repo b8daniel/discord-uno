@@ -3,7 +3,7 @@
     "src/**/*"
   ],
   "compilerOptions": {
-    "outDir": "src/build",
+    "outDir": "build",
     "watch": true,
     "target": "esnext",
     "module": "commonjs",
