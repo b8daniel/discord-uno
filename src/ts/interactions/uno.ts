@@ -3,6 +3,7 @@ import { BASE_EMB, ERR_BASE } from "../embeds";
 import { createGame, getGameFromThread, getGamefromUser, giveCardsToPlayer, isAllowedToPlay, isGameThread, isPlaying, playCard, updateHandCards, updateOverview } from "../games";
 import { UnoColor } from "../images";
 import { interactionListener } from "../interactions";
+import { lang } from "../lang";
 
 export default class UNOButtons {
 
@@ -10,8 +11,8 @@ export default class UNOButtons {
   async createNewGame(interaction: ButtonInteraction) {
     const currentlyPlaying = getGamefromUser(interaction.user.id);
 
-    if (currentlyPlaying) return interaction.reply({ embeds: [BASE_EMB.setDescription(`You are currently playing in <#${currentlyPlaying.threadId}>`)], ephemeral: true });
-    if (!(interaction.channel instanceof TextChannel)) return interaction.reply({ embeds: [ERR_BASE.setFooter("The game channel should be a text-channel")] });
+    if (currentlyPlaying) return interaction.reply({ embeds: [BASE_EMB.setDescription(lang.playingIn.replace("{0}", currentlyPlaying.threadId))], ephemeral: true });
+    if (!(interaction.channel instanceof TextChannel)) return interaction.reply({ embeds: [ERR_BASE.setFooter(lang.channelNotText)] });
 
     await createGame(interaction.user, interaction.channel);
 
@@ -20,11 +21,11 @@ export default class UNOButtons {
 
   @interactionListener("uno-getcards", "MESSAGE_COMPONENT")
   async giveCards(interaction: ButtonInteraction) {
-    if (!isGameThread(interaction.channelId) || !interaction.channel.isThread()) return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setFooter("this isn't an active game thread")], ephemeral: true });
+    if (!isGameThread(interaction.channelId) || !interaction.channel.isThread()) return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setFooter(lang.gameNotActive)], ephemeral: true });
 
-    if (!isPlaying(interaction.user.id, interaction.channelId)) return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setDescription("You are not playing in this game")], ephemeral: true });
+    if (!isPlaying(interaction.user.id, interaction.channelId)) return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setDescription(lang.gameNotPlaying)], ephemeral: true });
 
-    await interaction.reply({ content: "your cards", ephemeral: true });
+    await interaction.reply({ content: lang.yourCards, ephemeral: true });
     await updateHandCards(interaction);
   }
 
@@ -50,11 +51,11 @@ export default class UNOButtons {
 
       } else {
         // invalid card
-        return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setDescription("You can't play this card")], ephemeral: true });
+        return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setDescription(lang.cantPlayCard)], ephemeral: true });
       }
     } else {
       // not up now
-      interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setDescription("It's not your turn")], ephemeral: true });
+      interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setDescription(lang.notYourTurn)], ephemeral: true });
     }
   }
 
@@ -66,7 +67,7 @@ export default class UNOButtons {
   @interactionListener("uno-calluno", "MESSAGE_COMPONENT")
   async callUno(interaction: ButtonInteraction) {
     if (!(await isAllowedToPlay(interaction, true))) return;
-    await interaction.reply({ embeds: [new MessageEmbed(BASE_EMB).setDescription(`<@${interaction.user.id}> called uno!`)] });
+    await interaction.reply({ embeds: [new MessageEmbed(BASE_EMB).setDescription(lang.callUno.replace("{0}", interaction.user.id))] });
     const unoMessage = await interaction.fetchReply();
     if (!(unoMessage instanceof Message)) return;
 
@@ -85,7 +86,7 @@ export default class UNOButtons {
 
     const gameObject = getGameFromThread(interaction.channelId);
 
-    if (gameObject.gameState.cardsTaken[interaction.user.id] > 0) return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setDescription("You already took a card")], ephemeral: true });
+    if (gameObject.gameState.cardsTaken[interaction.user.id] > 0) return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setDescription(lang.tookCardAllready)], ephemeral: true });
 
     giveCardsToPlayer(interaction.user.id, interaction.channel, 1);
 
@@ -108,7 +109,7 @@ export default class UNOButtons {
       await interaction.deferUpdate();
       await updateOverview(interaction.channel); // to show who is next
     } else {
-      interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setDescription("You can't skip if you didn't take a card")], ephemeral: true });
+      interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setDescription(lang.noCardTakenToSkip)], ephemeral: true });
     }
   }
 }

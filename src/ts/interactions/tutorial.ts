@@ -2,6 +2,7 @@ import { SlashCommandBuilder } from "@discordjs/builders";
 import { CommandInteraction, MessageActionRow, MessageButton, MessageComponentInteraction } from "discord.js";
 import { ERR_ONLY_IN_GUILD, TUTORIAL_EMBED_ADMIN, TUTORIAL_EMBED_USER } from "../embeds";
 import { commandStorage, interactionListener } from "../interactions";
+import { lang } from "../lang";
 
 export default class TutorialCommand {
 
@@ -27,7 +28,7 @@ export default class TutorialCommand {
   @commandStorage()
   commands() {
     return [
-      new SlashCommandBuilder().setName("tutorial").setDescription("This command will to get started with the bot!")
+      new SlashCommandBuilder().setName("tutorial").setDescription(lang.cmdTutorialDesc)
     ];
   }
 }

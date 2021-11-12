@@ -1,6 +1,7 @@
 import { Client, ClientEvents, Message, MessageActionRow, MessageAttachment, MessageComponentInteraction, MessageEmbed, MessageSelectMenu, MessageSelectOptionData, TextChannel, ThreadChannel, User } from "discord.js";
 import { BASE_EMB, ERR_BASE, HAND_CARD_COMPONENTS, INGAME_COMPONENTS, JOIN_GAME_EMBED, WIN_EMBED } from "./embeds";
 import { generateCards, generateOverview, UnoCard, UnoColor, UnoType } from "./images";
+import { lang } from "./lang";
 
 export const runningGames: RunningGame[] = [];
 let nextGameId = 0;
@@ -136,9 +137,9 @@ export async function onGameMembersUpdate(thread: ThreadChannel, newMembers: Cli
 
 function generateJoinGameEmbed(playerIds: string[], creator: string, startTime: number) {
   return new MessageEmbed(JOIN_GAME_EMBED)
-    .setAuthor("Game started by " + creator)
-    .addField("players:", playerIds.length > 0 ? playerIds.map(id => `<@${id}>`).join(", ") : "none", true)
-    .addField("start:", startTime === -1 ? "when the first card is played" : `<t:${Math.round(startTime / 1000)}:R>`, true);
+    .setAuthor(lang.gameStartedBy.replace("{0}", creator))
+    .addField(lang.players + ":", playerIds.length > 0 ? playerIds.map(id => `<@${id}>`).join(", ") : "∅", true)
+    .addField(lang.start + ":", startTime === -1 ? lang.startOnFirstCard : `<t:${Math.round(startTime / 1000)}:R>`, true);
 }
 
 function getAllUnoCards() {
@@ -228,7 +229,7 @@ export async function updateHandCards(interaction: MessageComponentInteraction) 
   );
 
   const cardSelector = new MessageActionRow().addComponents(
-    new MessageSelectMenu().setCustomId("uno-placecard").setPlaceholder("place a card").addOptions(
+    new MessageSelectMenu().setCustomId("uno-placecard").setPlaceholder(lang.placeCard).addOptions(
       cards.map((card, i): MessageSelectOptionData[] => {
         if (i !== cards.findIndex(card1 => card1.type === card.type && card1.color === card.color)) {
           return [];
@@ -237,7 +238,7 @@ export async function updateHandCards(interaction: MessageComponentInteraction) 
           const colorOptions: MessageSelectOptionData[] = [];
           for (let c = 0; c < 4; c++) {
             colorOptions.push({
-              label: `${unoColorEmojis[card.color]}: ${unoTypeNames[card.type]}, choose: ${unoColorEmojis[c]}`,
+              label: `${unoColorEmojis[card.color]}: ${unoTypeNames[card.type]}, ${lang.choose}: ${unoColorEmojis[c]}`,
               value: `${String(i)}_${c}`
             });
           }
@@ -262,7 +263,7 @@ export async function playCard(interaction: MessageComponentInteraction, cardInd
   if (!gameObject || !interaction.channel.isThread()) return;
 
   // reply within 3 seconds
-  await interaction.reply({ content: "your cards:", ephemeral: true });
+  await interaction.reply({ content: lang.yourCards, ephemeral: true });
 
   // remove card from hand
   const handCards = gameObject.gameState.handCards[interaction.user.id];
@@ -277,21 +278,21 @@ export async function playCard(interaction: MessageComponentInteraction, cardInd
 
   // player needs to call uno
   if (handCards.length === 1) {
-    await interaction.editReply({ content: "don't forget to call uno when you only have one card left." });
+    await interaction.editReply({ content: lang.callUnoBeforePlaying });
     gameObject.gameState.waitingForUno = true;
 
     const callCollector = await (interaction.message as Message).awaitMessageComponent({ componentType: "BUTTON", filter: c => c.customId === "uno-calluno", time: 10e3 }).catch(() => false as const);
     if (!callCollector) {
       // player didn't call uno
       handCards.push(...takeRandomCards(2, gameObject.gameState.cardsInStack, getAllUnoCards));
-      await interaction.editReply({ content: "you didn't call uno, so you get 2 cards" });
+      await interaction.editReply({ content: lang.didntCallUno });
     }
     gameObject.gameState.waitingForUno = false;
   } else if (handCards.length === 0) {
     //TODO end game
     await updateOverview(interaction.channel);
     await interaction.editReply("You win!");
-    await interaction.followUp({ embeds: [new MessageEmbed(WIN_EMBED).setAuthor(`congratulations ${interaction.user.username},`)] });
+    await interaction.followUp({ embeds: [new MessageEmbed(WIN_EMBED).setAuthor(lang.congrats.replace("{0}", interaction.user.username))] });
     if (interaction.channel.isThread()) {
       await interaction.channel.setArchived(true);
       runningGames.splice(runningGames.findIndex(gme => gme.threadId === interaction.channelId), 1);
@@ -322,12 +323,12 @@ export async function playCard(interaction: MessageComponentInteraction, cardInd
     }
     case UnoType.DRAW_TWO: {
       gameObject.gameState.handCards[nextPlayerId].push(...takeRandomCards(2, gameObject.gameState.cardsInStack, getAllUnoCards));
-      await interaction.channel.send({ embeds: [new MessageEmbed(BASE_EMB).setDescription(`<@${nextPlayerId}> you need to draw 2 cards. Do so by clicking :flower_playing_cards: \`hand cards\`!`)] });
+      await interaction.channel.send({ embeds: [new MessageEmbed(BASE_EMB).setDescription(lang.drawCards.replace("{0}", nextPlayerId).replace("{1}", "2"))] });
       break;
     }
     case UnoType.WILD_DRAW_FOUR: {
       gameObject.gameState.handCards[nextPlayerId].push(...takeRandomCards(4, gameObject.gameState.cardsInStack, getAllUnoCards));
-      await interaction.channel.send({ embeds: [new MessageEmbed(BASE_EMB).setDescription(`<@${nextPlayerId}> you need to draw 4 cards. Do so by clicking :flower_playing_cards: \`hand cards\`!`)] });
+      await interaction.channel.send({ embeds: [new MessageEmbed(BASE_EMB).setDescription(lang.drawCards.replace("{0}", nextPlayerId).replace("{1}", "4"))] });
       break;
     }
   }
@@ -347,20 +348,20 @@ export function giveCardsToPlayer(playerId: string, thread: ThreadChannel, count
 
 export function isAllowedToPlay(interaction: MessageComponentInteraction, skipUnoWait: boolean = false) {
   // needs to be a thread
-  if (!isGameThread(interaction.channelId) || !interaction.channel.isThread()) return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setFooter("this isn't an active game thread")], ephemeral: true });
+  if (!isGameThread(interaction.channelId) || !interaction.channel.isThread()) return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setFooter(lang.gameNotActive)], ephemeral: true });
 
   const { gameState, players } = getGameFromThread(interaction.channelId);
   // nedds to be in the game
-  if (!players.includes(interaction.user.id)) return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setFooter("you aren't in this game")], ephemeral: true });
+  if (!players.includes(interaction.user.id)) return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setFooter(lang.gameNotPlaying)], ephemeral: true });
 
   // needs to be the next player
-  if (players[gameState.upNow] !== interaction.user.id) return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setDescription("It's not your turn")], ephemeral: true });
+  if (players[gameState.upNow] !== interaction.user.id) return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setDescription(lang.notYourTurn)], ephemeral: true });
   //? needs to have enough cards
   // not waiting for uno
-  if (!skipUnoWait && gameState.waitingForUno) return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setDescription("You need to call uno")], ephemeral: true });
+  if (!skipUnoWait && gameState.waitingForUno) return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setDescription(lang.needToCallUno)], ephemeral: true });
 
   // latest card message
-  if (gameState.cardDisplayIds[interaction.user.id] !== interaction.message.id) return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setFooter("these cards are outdated")], ephemeral: true });
+  if (gameState.cardDisplayIds[interaction.user.id] !== interaction.message.id) return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setFooter(lang.cardsOutdated)], ephemeral: true });
   return true;
 }
 
