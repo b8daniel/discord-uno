@@ -93,7 +93,7 @@ const de: { [key in TranslatedString]: string } = {
   cmdAdminGameChannelSelectDesc: "Dieser Channel wird verwendet, um Spiele zu spielen",
   errBase: "Ein Fehler ist aufgetreten!",
   callUnoBeforePlaying: "Vergiss nicht, UNO zu rufen, wenn du deine vorletzte Karte ablegst.",
-  gameStartedBy: "Spiel gestartet von <@{0}>",
+  gameStartedBy: "Spiel gestartet von {0}",
   players: "Spieler",
   start: "Start",
   startOnFirstCard: "wenn die erste Karte gespielt wird",

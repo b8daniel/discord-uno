@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from "@discordjs/builders";
-import { CommandInteraction, MessageActionRow, MessageButton, MessageComponentInteraction } from "discord.js";
+import { CommandInteraction, MessageActionRow, MessageButton, MessageComponentInteraction, Permissions } from "discord.js";
 import { ERR_ONLY_IN_GUILD, TUTORIAL_EMBED_ADMIN, TUTORIAL_EMBED_USER } from "../embeds";
 import { commandStorage, interactionListener } from "../interactions";
 import { lang } from "../lang";
@@ -17,7 +17,10 @@ export default class TutorialCommand {
           .setStyle("SUCCESS")
           .setEmoji(randomItem(positiveEmojis))
       );
-    interaction.reply({ embeds: [interaction.user.id === interaction.guild.ownerId ? TUTORIAL_EMBED_ADMIN : TUTORIAL_EMBED_USER], ephemeral: true, components: [row] });
+    interaction.reply({ embeds: [TUTORIAL_EMBED_USER], ephemeral: true, components: [row] });
+    if (interaction.memberPermissions.has(Permissions.FLAGS.ADMINISTRATOR)) {
+      interaction.reply({ embeds: [TUTORIAL_EMBED_ADMIN], ephemeral: true });
+    }
   }
 
   @interactionListener("tutorial-yes", "MESSAGE_COMPONENT")
