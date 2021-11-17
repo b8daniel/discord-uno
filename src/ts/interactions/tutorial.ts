@@ -19,7 +19,7 @@ export default class TutorialCommand {
       );
     interaction.reply({ embeds: [TUTORIAL_EMBED_USER], ephemeral: true, components: [row] });
     if (interaction.memberPermissions.has(Permissions.FLAGS.ADMINISTRATOR)) {
-      interaction.reply({ embeds: [TUTORIAL_EMBED_ADMIN], ephemeral: true });
+      interaction.followUp({ embeds: [TUTORIAL_EMBED_ADMIN], ephemeral: true });
     }
   }
 

@@ -51,11 +51,11 @@ export const unoTypeNames: Record<UnoType, string> = {
   [UnoType.SEVEN]: "7",
   [UnoType.EIGHT]: "8",
   [UnoType.NINE]: "9",
-  [UnoType.DRAW_TWO]: "Draw 2",
-  [UnoType.REVERSE]: "Reverse",
-  [UnoType.SKIP]: "Skip",
-  [UnoType.WILD_DRAW_FOUR]: "Wild Draw 4",
-  [UnoType.WILD]: "Wild",
+  [UnoType.DRAW_TWO]: "+2",
+  [UnoType.REVERSE]: "↺",
+  [UnoType.SKIP]: "∅",
+  [UnoType.WILD_DRAW_FOUR]: "+4",
+  [UnoType.WILD]: "★",
 };
 
 export function getGamefromUser(userId: string): RunningGame {
