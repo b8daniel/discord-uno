@@ -57,6 +57,8 @@ client.on("error", error => {
   })).catch();
 });
 
+client.on("warn", console.warn);
+
 client.login(token);
 
 // https://discord.com/api/oauth2/authorize?client_id=902616076196651058&scope=bot%20applications.commands&permissions=534790925376

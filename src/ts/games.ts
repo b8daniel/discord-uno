@@ -27,9 +27,10 @@ type UnoState = {
   lastPlayedCards: UnoCard[], // 3 last played cards
   stats: Record<number, number>,
   handCards: Record<string, UnoCard[]>,
-  cardsTaken: Record<string, number>,
+  cardsTaken: Record<string, number>, // to disallow taking two cards in a row
   cardDisplayIds: Record<string, string>,
   playingDirection: 1 | -1,
+  cardsToTake: number,
 };
 
 export const unoColorEmojis: Record<UnoColor, string> = {
@@ -72,7 +73,7 @@ export async function createGame(creator: User, channel: TextChannel) {
   });
 
   const newThread = await infoMessage.startThread({
-    name: `game-${runningGames.length + 1}`,
+    name: lang.gameGroupName.replace("{0}", creator.username),
     autoArchiveDuration: 60,
     reason: `<@${creator.id}> started a new game!`,
   });
@@ -101,6 +102,7 @@ export async function createGame(creator: User, channel: TextChannel) {
       playingDirection: -1 as const,
       cardDisplayIds: {},
       cardsTaken: {},
+      cardsToTake: 0,
     }
   };
   runningGames.push(newGameData);
@@ -112,27 +114,27 @@ export function isGameThread(threadId: string) {
   return runningGames.findIndex(gme => gme.threadId === threadId) >= 0;
 }
 
-export async function onGameMembersUpdate(thread: ThreadChannel, newMembers: ClientEvents["threadMembersUpdate"]["1"]) {
+export async function onGameMembersUpdate(thread: ThreadChannel, updatedMembers: ClientEvents["threadMembersUpdate"]["1"]) {
   const gameObject = runningGames.find(gme => gme.threadId === thread.id);
-  const memberIds = Array.from(newMembers.keys()).filter(id => id !== thread.guild.me.id);
+  const memberIds = Array.from(updatedMembers.keys()).filter(id => id !== thread.guild.me.id);
   // update players on gameObject and embed
+  gameObject.players = memberIds;
+
   if (!gameObject.running) {
-    gameObject.players = memberIds;
     memberIds.forEach(id => {
       if (!gameObject.gameState.handCards[id]) {
         gameObject.gameState.handCards[id] =
           takeRandomCards(startCardCount, gameObject.gameState.cardsInStack, getAllUnoCards);
-        // //! only for testing
-        // [{ type: UnoType.WILD, color: UnoColor.BLACK }, { type: UnoType.WILD, color: UnoColor.BLACK }];
+        //! only for testing
+        // [{ type: UnoType.WILD, color: UnoColor.BLACK }, { type: UnoType.DRAW_TWO, color: UnoColor.RED }, { type: UnoType.DRAW_TWO, color: UnoColor.GREEN }, { type: UnoType.DRAW_TWO, color: UnoColor.RED }, { type: UnoType.REVERSE, color: UnoColor.YELLOW }, { type: UnoType.REVERSE, color: UnoColor.RED }];
       }
     });
-
-    const threadMessage = await thread.fetchStarterMessage();
-    await threadMessage.edit({ embeds: [generateJoinGameEmbed(gameObject.players, gameObject.creator, gameObject.startTime)] });
-    // update the game overview
-    await updateOverview(thread, true);
   }
 
+  const threadMessage = await thread.fetchStarterMessage();
+  await threadMessage.edit({ embeds: [generateJoinGameEmbed(gameObject.players, gameObject.creator, gameObject.startTime)] });
+  // update the game overview
+  await updateOverview(thread, true);
 }
 
 function generateJoinGameEmbed(playerIds: string[], creator: string, startTime: number) {
@@ -218,8 +220,15 @@ export async function updateHandCards(interaction: MessageComponentInteraction) 
   const gameObject = runningGames.find(gme => gme.threadId === interaction.channelId);
   if (!gameObject) return;
 
+  const needsToDrawCards = gameObject.players[gameObject.gameState.upNow] === interaction.user.id && gameObject.gameState.cardsToTake > 0;
+  if (needsToDrawCards) {
+    gameObject.gameState.handCards[interaction.user.id].push(...takeRandomCards(gameObject.gameState.cardsToTake, gameObject.gameState.cardsInStack, getAllUnoCards));
+    gameObject.gameState.cardsToTake = 0;
+  }
+
   const cards = getHandCardsForPlayer(interaction.user.id, interaction.channelId);
   cards.sort((a, b) => (a.color - b.color) !== 0 ? a.color - b.color : a.type - b.type);
+
 
   if (cards.length === 0) return;
 
@@ -255,6 +264,7 @@ export async function updateHandCards(interaction: MessageComponentInteraction) 
 
   gameObject.gameState.cardDisplayIds[interaction.user.id] = (await interaction.editReply({ files: [cardsFile], components: [cardSelector, ...HAND_CARD_COMPONENTS] })).id;
 
+  if (needsToDrawCards && interaction.channel instanceof ThreadChannel) await updateOverview(interaction.channel);
 }
 
 //TODO respond to interaction with overview
@@ -291,7 +301,7 @@ export async function playCard(interaction: MessageComponentInteraction, cardInd
   } else if (handCards.length === 0) {
     //TODO end game
     await updateOverview(interaction.channel);
-    await interaction.editReply("You win!");
+    await interaction.editReply(lang.youWin);
     await interaction.followUp({ embeds: [new MessageEmbed(WIN_EMBED).setAuthor(lang.congrats.replace("{0}", interaction.user.username))] });
     if (interaction.channel.isThread()) {
       await interaction.channel.setArchived(true);
@@ -304,8 +314,10 @@ export async function playCard(interaction: MessageComponentInteraction, cardInd
   if (card.type === UnoType.REVERSE) {
     gameObject.gameState.playingDirection *= -1;
   }
-  gameObject.gameState.upNow = (gameObject.gameState.upNow + gameObject.players.length + gameObject.gameState.playingDirection) % gameObject.players.length;
 
+  if (!(card.type === UnoType.REVERSE && gameObject.players.length === 2)) {
+    gameObject.gameState.upNow = (gameObject.gameState.upNow + gameObject.players.length + gameObject.gameState.playingDirection) % gameObject.players.length;
+  }
   const nextPlayerId = gameObject.players[gameObject.gameState.upNow];
   // special effects
   //TODO +2 stacking
@@ -322,13 +334,13 @@ export async function playCard(interaction: MessageComponentInteraction, cardInd
       break;
     }
     case UnoType.DRAW_TWO: {
-      gameObject.gameState.handCards[nextPlayerId].push(...takeRandomCards(2, gameObject.gameState.cardsInStack, getAllUnoCards));
-      await interaction.channel.send({ embeds: [new MessageEmbed(BASE_EMB).setDescription(lang.drawCards.replace("{0}", nextPlayerId).replace("{1}", "2"))] });
+      gameObject.gameState.cardsToTake += 2;
+      await interaction.channel.send({ embeds: [new MessageEmbed(BASE_EMB).setDescription(lang.drawCards.replace("{0}", nextPlayerId).replace("{1}", gameObject.gameState.cardsToTake.toFixed()))] });
       break;
     }
     case UnoType.WILD_DRAW_FOUR: {
       gameObject.gameState.handCards[nextPlayerId].push(...takeRandomCards(4, gameObject.gameState.cardsInStack, getAllUnoCards));
-      await interaction.channel.send({ embeds: [new MessageEmbed(BASE_EMB).setDescription(lang.drawCards.replace("{0}", nextPlayerId).replace("{1}", "4"))] });
+      await interaction.channel.send({ embeds: [new MessageEmbed(BASE_EMB).setDescription(lang.drawCardsFour.replace("{0}", nextPlayerId))] });
       break;
     }
   }

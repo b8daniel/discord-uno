@@ -28,9 +28,12 @@ enum TranslatedString {
   CHOOSE = 'choose',
   DIDNT_CALL_UNO = 'didntCallUno',
   CONGRATS = 'congrats',
+  YOU_WIN = 'youWin',
   DRAW_CARDS = 'drawCards',
+  DRAW_CARDS_FOUR = 'drawCardsFour',
   NEED_TO_CALL_UNO = 'needToCallUno',
   CARDS_OUTDATED = 'cardsOutdated',
+  GAME_GROUP_NAME = 'gameGroupName',
 }
 /*
 const de: { [key in TranslatedString]: string } = {
@@ -67,9 +70,12 @@ const en: { [key in TranslatedString]: string } = {
   choose: "choose",
   didntCallUno: "You didn't call uno, so you get 2 cards",
   congrats: "Congrats {0}!",
-  drawCards: "<@{0}> you need to draw {1} cards. Do so by clicking :flower_playing_cards: \`hand cards\`!",
+  youWin: "You win!",
+  drawCards: "<@{0}> you need to draw {1} cards. Do so by clicking :flower_playing_cards: \`hand cards\` or play a +2 card.",
+  drawCardsFour: "<@{0}> you need to draw 4 cards. Do so by clicking :flower_playing_cards: \`hand cards\`.",
   needToCallUno: "You need to call uno",
   cardsOutdated: "Your cards are outdated, please use the latest message or update them by clicking :flower_playing_cards: \`hand cards\`!",
+  gameGroupName: "{0}s table",
 };
 const de: { [key in TranslatedString]: string } = {
   playingIn: 'Du spielst gerade in {0}',
@@ -101,9 +107,12 @@ const de: { [key in TranslatedString]: string } = {
   choose: "gewünscht",
   didntCallUno: "Du hast nicht UNO gerufens, also bekommst du 2 Karten",
   congrats: "Herzlichen Glückwunsch {0}!",
-  drawCards: "<@{0}> du musst {1} Karten ziehen. Ziehe diese durch Klicken auf :flower_playing_cards: \`Handkarten\` auf!",
+  youWin: "Du gewinnst!",
+  drawCards: "<@{0}> du musst {1} Karten ziehen. Ziehe diese durch Klicken auf :flower_playing_cards: \`Handkarten\` auf oder lege eine +2 Karte ab.",
+  drawCardsFour: "<@{0}> du musst 4 Karten ziehen. Ziehe diese durch Klicken auf :flower_playing_cards: \`Handkarten\` auf.",
   needToCallUno: "Du musst UNO rufen",
   cardsOutdated: "Deine Karten sind veraltet, bitte benutze die neueste Nachricht oder aktualisiere sie durch Klicken auf :flower_playing_cards: \`Handkarten\`!",
+  gameGroupName: "{0}s Spieltisch",
 };
 
 export const lang = de;

@@ -7,7 +7,7 @@ import { lang } from "../lang";
 export default class TutorialCommand {
 
   @interactionListener("tutorial", "APPLICATION_COMMAND")
-  onTutorialCommand(interaction: CommandInteraction) {
+  async onTutorialCommand(interaction: CommandInteraction) {
     if (!interaction.inGuild()) return interaction.reply({ embeds: [ERR_ONLY_IN_GUILD], ephemeral: true });
     const row = new MessageActionRow()
       .addComponents(
@@ -17,9 +17,9 @@ export default class TutorialCommand {
           .setStyle("SUCCESS")
           .setEmoji(randomItem(positiveEmojis))
       );
-    interaction.reply({ embeds: [TUTORIAL_EMBED_USER], ephemeral: true, components: [row] });
+    await interaction.reply({ embeds: [TUTORIAL_EMBED_USER], ephemeral: true, components: [row] });
     if (interaction.memberPermissions.has(Permissions.FLAGS.ADMINISTRATOR)) {
-      interaction.followUp({ embeds: [TUTORIAL_EMBED_ADMIN], ephemeral: true });
+      await interaction.followUp({ embeds: [TUTORIAL_EMBED_ADMIN], ephemeral: true });
     }
   }
 
