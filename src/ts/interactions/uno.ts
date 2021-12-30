@@ -1,7 +1,7 @@
 import { ButtonInteraction, Message, MessageEmbed, SelectMenuInteraction, TextChannel } from "discord.js";
 import { BASE_EMB, ERR_BASE } from "../embeds";
 import { createGame, getGameFromThread, getGamefromUser, giveCardsToPlayer, isAllowedToPlay, isGameThread, isPlaying, playCard, updateHandCards, updateOverview } from "../games";
-import { UnoColor } from "../images";
+import { UnoColor, UnoType } from "../images";
 import { interactionListener } from "../interactions";
 import { lang } from "../lang";
 
@@ -40,22 +40,23 @@ export default class UNOButtons {
     const selectedCard = cards[cardIndex];
     const lastPlayedCard = gameState.lastPlayedCards[gameState.lastPlayedCards.length - 1];
 
-    if (gameObject.players[gameState.upNow] === interaction.user.id) {
-      if (
-        selectedCard.color === UnoColor.BLACK
-        || lastPlayedCard.color === UnoColor.BLACK // only happens if the start card is black, so it's fine
-        || selectedCard.color === lastPlayedCard.color
-        || selectedCard.type === lastPlayedCard.type) {
-        // valid card
-        return await playCard(interaction, cardIndex, color);
+    if (gameObject.players[gameState.upNow] !== interaction.user.id)
+      return await interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setDescription(lang.notYourTurn)], ephemeral: true });
 
-      } else {
-        // invalid card
-        return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setDescription(lang.cantPlayCard)], ephemeral: true });
-      }
+    if (selectedCard.type !== UnoType.DRAW_TWO && gameState.cardsToTake > 0)
+      return await interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setDescription(lang.drawCards.replace("{0}", interaction.user.id).replace("{1}", gameState.cardsToTake.toFixed()))], ephemeral: true });
+
+    if (
+      selectedCard.color === UnoColor.BLACK
+      || lastPlayedCard.color === UnoColor.BLACK // only happens if the start card is black, so it's fine
+      || selectedCard.color === lastPlayedCard.color
+      || selectedCard.type === lastPlayedCard.type) {
+      // valid card
+      return await playCard(interaction, cardIndex, color);
+
     } else {
-      // not up now
-      interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setDescription(lang.notYourTurn)], ephemeral: true });
+      // invalid card
+      return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setDescription(lang.cantPlayCard)], ephemeral: true });
     }
   }
 
