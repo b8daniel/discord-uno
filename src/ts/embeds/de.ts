@@ -1,7 +1,7 @@
 import { MessageActionRow, MessageButton, MessageEmbed, MessageOptions } from "discord.js";
 import { botInvite, sponsorDescription, sponsorInvite } from "../config";
 
-type MessageOptionComponents = MessageOptions["components"];
+type MessageOptionComponents = NonNullable<MessageOptions["components"]>;
 
 export const primaryColor = "#04F089";
 
@@ -38,7 +38,8 @@ export const GAME_CONTROLS = new MessageEmbed(BASE_EMB)
 
 export const GAME_CONTROL_COMPONENTS: MessageOptionComponents = [
   new MessageActionRow().addComponents(
-    new MessageButton().setStyle("SUCCESS").setEmoji("🎮").setLabel("neues Spiel").setCustomId("uno-creategame")
+    new MessageButton().setStyle("SUCCESS").setEmoji("🎮").setLabel("neues Spiel").setCustomId("uno-creategame"),
+    new MessageButton().setStyle("SECONDARY").setEmoji("🔔").setLabel("Rundenbenachrichtigungen an/aus").setCustomId("uno-creategame-notify"),
   )
 ];
 

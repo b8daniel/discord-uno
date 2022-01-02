@@ -34,6 +34,9 @@ enum TranslatedString {
   NEED_TO_CALL_UNO = 'needToCallUno',
   CARDS_OUTDATED = 'cardsOutdated',
   GAME_GROUP_NAME = 'gameGroupName',
+  ROLE_NOT_FOUND = 'roleNotFound',
+  NOTIFY_ON = 'notifyOn',
+  NOTIFY_OFF = 'notifyOff',
 }
 /*
 const de: { [key in TranslatedString]: string } = {
@@ -76,9 +79,12 @@ const en: { [key in TranslatedString]: string } = {
   needToCallUno: "You need to call uno",
   cardsOutdated: "Your cards are outdated, please use the latest message or update them by clicking :flower_playing_cards: \`hand cards\`!",
   gameGroupName: "{0}s table",
+  roleNotFound: "The role couldn't be found",
+  notifyOn: "Notifications are now on",
+  notifyOff: "Notifications are now off",
 };
 const de: { [key in TranslatedString]: string } = {
-  playingIn: 'Du spielst gerade in {0}',
+  playingIn: 'Du spielst gerade in <#{0}>',
   channelNotText: "Der Spiel-Channel sollte ein Text-Channel sein",
   gameNotActive: "Dies ist kein aktiver Spiel-Thread",
   gameNotPlaying: "Du spielst in diesem Spiel nicht",
@@ -113,6 +119,9 @@ const de: { [key in TranslatedString]: string } = {
   needToCallUno: "Du musst UNO rufen",
   cardsOutdated: "Deine Karten sind veraltet, bitte benutze die neueste Nachricht oder aktualisiere sie durch Klicken auf :flower_playing_cards: \`Handkarten\`!",
   gameGroupName: "{0}s Spieltisch",
+  roleNotFound: "Die Rolle konnte nicht gefunden werden",
+  notifyOn: "Benachrichtigungen sind nun eingeschaltet",
+  notifyOff: "Benachrichtigungen sind nun ausgeschaltet",
 };
 
 export const lang = de;

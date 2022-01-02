@@ -1,4 +1,5 @@
-import { ButtonInteraction, Message, MessageEmbed, SelectMenuInteraction, TextChannel } from "discord.js";
+import { ButtonInteraction, GuildMemberRoleManager, Message, MessageEmbed, SelectMenuInteraction, TextChannel } from "discord.js";
+import { notifyRoleId } from "../config";
 import { BASE_EMB, ERR_BASE } from "../embeds";
 import { createGame, getGameFromThread, getGamefromUser, giveCardsToPlayer, isAllowedToPlay, isGameThread, isPlaying, playCard, updateHandCards, updateOverview } from "../games";
 import { UnoColor, UnoType } from "../images";
@@ -19,9 +20,24 @@ export default class UNOButtons {
     interaction.deferUpdate();
   }
 
+  @interactionListener("uno-creategame-notify", "MESSAGE_COMPONENT")
+  async wantsToToggleNotified(interaction: ButtonInteraction) {
+    const role = interaction.guild?.roles.resolve(notifyRoleId);
+    if (!role) return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setDescription(lang.roleNotFound)] });
+
+    if (role.members.has(interaction.user.id)) {
+      await (interaction.member.roles as GuildMemberRoleManager).remove(role);
+      return interaction.reply({ embeds: [new MessageEmbed(BASE_EMB).setDescription(lang.notifyOff)] });
+    } else {
+      await (interaction.member.roles as GuildMemberRoleManager).add(role);
+      return interaction.reply({ embeds: [new MessageEmbed(BASE_EMB).setDescription(lang.notifyOn)] });
+    }
+
+  }
+
   @interactionListener("uno-getcards", "MESSAGE_COMPONENT")
   async giveCards(interaction: ButtonInteraction) {
-    if (!isGameThread(interaction.channelId) || !interaction.channel.isThread()) return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setFooter(lang.gameNotActive)], ephemeral: true });
+    if (!isGameThread(interaction.channelId) || !interaction.channel?.isThread()) return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setFooter(lang.gameNotActive)], ephemeral: true });
 
     if (!isPlaying(interaction.user.id, interaction.channelId)) return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setDescription(lang.gameNotPlaying)], ephemeral: true });
 
@@ -34,6 +50,7 @@ export default class UNOButtons {
     if (!(await isAllowedToPlay(interaction))) return;
 
     const gameObject = getGameFromThread(interaction.channelId);
+    if (!gameObject) return;
     const gameState = gameObject.gameState;
     const cards = gameState.handCards[interaction.user.id];
     const [cardIndex, color] = interaction.values[0].split("_").map(Number);
@@ -83,9 +100,10 @@ export default class UNOButtons {
 
   @interactionListener("uno-takecard", "MESSAGE_COMPONENT")
   async takeCard(interaction: ButtonInteraction) {
-    if (!(await isAllowedToPlay(interaction)) || !interaction.channel.isThread()) return;
+    if (!(await isAllowedToPlay(interaction)) || !interaction.channel?.isThread()) return;
 
     const gameObject = getGameFromThread(interaction.channelId);
+    if (!gameObject) return;
 
     if (gameObject.gameState.cardsTaken[interaction.user.id] > 0) return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setDescription(lang.tookCardAllready)], ephemeral: true });
 
@@ -100,9 +118,10 @@ export default class UNOButtons {
 
   @interactionListener("uno-putnocard", "MESSAGE_COMPONENT")
   async putNoCard(interaction: ButtonInteraction) {
-    if (!(await isAllowedToPlay(interaction)) || !interaction.channel.isThread()) return;
+    if (!(await isAllowedToPlay(interaction)) || !interaction.channel?.isThread()) return;
 
     const gameObject = getGameFromThread(interaction.channelId);
+    if (!gameObject) return;
 
     if (gameObject.gameState.cardsTaken[interaction.user.id] > 0) {
       gameObject.gameState.upNow = (gameObject.gameState.upNow + gameObject.players.length + gameObject.gameState.playingDirection) % gameObject.players.length;

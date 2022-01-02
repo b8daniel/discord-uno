@@ -1,4 +1,5 @@
 import { Client, ClientEvents, Message, MessageActionRow, MessageAttachment, MessageComponentInteraction, MessageEmbed, MessageSelectMenu, MessageSelectOptionData, TextChannel, ThreadChannel, User } from "discord.js";
+import { notifyRoleId } from "./config";
 import { BASE_EMB, ERR_BASE, HAND_CARD_COMPONENTS, INGAME_COMPONENTS, JOIN_GAME_EMBED, WIN_EMBED } from "./embeds";
 import { generateCards, generateOverview, UnoCard, UnoColor, UnoType } from "./images";
 import { lang } from "./lang";
@@ -12,7 +13,7 @@ type RunningGame = {
   gameId: number,
   creator: string,
   infoMessageId: string,
-  overviewMessageId: string,
+  overviewMessageId: string | null,
   threadId: string,
   players: string[],
   gameState: UnoState,
@@ -59,17 +60,18 @@ export const unoTypeNames: Record<UnoType, string> = {
   [UnoType.WILD]: "★",
 };
 
-export function getGamefromUser(userId: string): RunningGame {
+export function getGamefromUser(userId: string): RunningGame | undefined {
   return runningGames.find(gme => gme.players.includes(userId));
 }
 
-export function getGameFromThread(threadId: string): RunningGame {
+export function getGameFromThread(threadId: string): RunningGame | undefined {
   return runningGames.find(gme => gme.threadId === threadId);
 }
 
 export async function createGame(creator: User, channel: TextChannel) {
   const infoMessage = await channel.send({
-    embeds: [generateJoinGameEmbed([], creator.username, 0)]
+    embeds: [generateJoinGameEmbed([], creator.username, 0)],
+    content: await channel.guild.roles.fetch(notifyRoleId) && `<@&${notifyRoleId}>`,
   });
 
   const newThread = await infoMessage.startThread({
@@ -116,7 +118,8 @@ export function isGameThread(threadId: string) {
 
 export async function onGameMembersUpdate(thread: ThreadChannel, updatedMembers: ClientEvents["threadMembersUpdate"]["1"]) {
   const gameObject = runningGames.find(gme => gme.threadId === thread.id);
-  const memberIds = Array.from(updatedMembers.keys()).filter(id => id !== thread.guild.me.id);
+  if (!gameObject || !thread.guild) return;
+  const memberIds = Array.from(updatedMembers.keys()).filter(id => id !== thread.guild.me?.id);
   // update players on gameObject and embed
   gameObject.players = memberIds;
 
@@ -183,7 +186,7 @@ async function overviewFromGameData(data: RunningGame, client: Client) {
 }
 
 export function getHandCardsForPlayer(playerId: string, threadId: string) {
-  return runningGames.find(gme => gme.threadId === threadId).gameState.handCards[playerId];
+  return runningGames.find(gme => gme.threadId === threadId)?.gameState.handCards[playerId];
 }
 
 export function removeGame(threadId: string) {
@@ -227,6 +230,7 @@ export async function updateHandCards(interaction: MessageComponentInteraction) 
   }
 
   const cards = getHandCardsForPlayer(interaction.user.id, interaction.channelId);
+  if (!cards) return;
   cards.sort((a, b) => (a.color - b.color) !== 0 ? a.color - b.color : a.type - b.type);
 
 
@@ -247,7 +251,7 @@ export async function updateHandCards(interaction: MessageComponentInteraction) 
           const colorOptions: MessageSelectOptionData[] = [];
           for (let c = 0; c < 4; c++) {
             colorOptions.push({
-              label: `${unoColorEmojis[card.color]}: ${unoTypeNames[card.type]}, ${lang.choose}: ${unoColorEmojis[c]}`,
+              label: `${unoColorEmojis[card.color]}: ${unoTypeNames[card.type]}, ${lang.choose}: ${unoColorEmojis[c as UnoColor]}`,
               value: `${String(i)}_${c}`
             });
           }
@@ -270,7 +274,7 @@ export async function updateHandCards(interaction: MessageComponentInteraction) 
 //TODO respond to interaction with overview
 export async function playCard(interaction: MessageComponentInteraction, cardIndex: number, cardColor?: UnoColor) {
   const gameObject = runningGames.find(gme => gme.threadId === interaction.channelId);
-  if (!gameObject || !interaction.channel.isThread()) return;
+  if (!gameObject || !interaction.channel?.isThread()) return;
 
   // reply within 3 seconds
   await interaction.reply({ content: lang.yourCards, ephemeral: true });
@@ -360,9 +364,11 @@ export function giveCardsToPlayer(playerId: string, thread: ThreadChannel, count
 
 export function isAllowedToPlay(interaction: MessageComponentInteraction, skipUnoWait: boolean = false) {
   // needs to be a thread
-  if (!isGameThread(interaction.channelId) || !interaction.channel.isThread()) return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setFooter(lang.gameNotActive)], ephemeral: true });
+  if (!isGameThread(interaction.channelId) || !interaction.channel?.isThread()) return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setFooter(lang.gameNotActive)], ephemeral: true });
 
-  const { gameState, players } = getGameFromThread(interaction.channelId);
+  const game = getGameFromThread(interaction.channelId);
+  if (!game) return;
+  const { gameState, players } = game;
   // nedds to be in the game
   if (!players.includes(interaction.user.id)) return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setFooter(lang.gameNotPlaying)], ephemeral: true });
 

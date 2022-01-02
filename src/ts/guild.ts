@@ -41,6 +41,6 @@ export function getGuildCache(): readonly DBGuild[] {
 }
 
 export async function handleNewGuild(guild: Guild) {
-  await guild.systemChannel.send({ embeds: [ADD_EMBED] });
+  await guild.systemChannel?.send({ embeds: [ADD_EMBED] });
   guild.fetchOwner();
 }

@@ -14,7 +14,7 @@ client.on("guildCreate", cacheGuild);
 
 client.on("ready", async () => {
 
-  client.user.setActivity(`/tutorial • /invite • ${sponsor}`);
+  client.user?.setActivity(`/tutorial • /invite • ${sponsor}`);
 
   await Promise.all(
     client.guilds.cache.map(async (guild: Guild) => {
@@ -38,7 +38,8 @@ client.on("interactionCreate", async interaction => {
 
 client.on("threadMembersUpdate", async (oldMembers, newMembers) => {
 
-  const thread = oldMembers.concat(newMembers).first().thread;
+  const thread = oldMembers.concat(newMembers).first()?.thread;
+  if (!thread) return;
   if (isGameThread(thread.id)) await onGameMembersUpdate(thread, newMembers);
 
 });

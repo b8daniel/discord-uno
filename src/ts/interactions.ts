@@ -115,7 +115,7 @@ export function interactionListener(interName: string, accepts?: InteractionType
     listeners.push({
       name: interName,
       accepts: accepts ? [accepts] : ["APPLICATION_COMMAND", "MESSAGE_COMPONENT"],
-      listener: obj[symbol],
+      listener: (obj as any)[symbol],
     });
   };
 }
@@ -124,7 +124,7 @@ export function commandStorage(debugCommands = false): MethodDecorator {
   return (obj, symbol) => {
     if (debugCommands && process.env.NODE_ENV !== "DEV") return;
     try {
-      commands.push(...(obj[symbol]()));
+      commands.push(...((obj as any)[symbol]()));
     } catch (error) {
       console.error("A commandStorage isn't set up properly. Is the methods return type `SlashCommandBuilder[]`?");
     }

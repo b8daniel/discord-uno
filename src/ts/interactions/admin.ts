@@ -10,12 +10,13 @@ export default class AdminCommand {
   @interactionListener("admin", "APPLICATION_COMMAND")
   async onAdminCommand(interaction: CommandInteraction) {
 
-    if (!interaction.memberPermissions.has(Permissions.FLAGS.ADMINISTRATOR)) return interaction.reply({ embeds: [ERR_ONLY_AS_ADMIN], ephemeral: true });
+    if (!interaction.memberPermissions?.has(Permissions.FLAGS.ADMINISTRATOR)) return interaction.reply({ embeds: [ERR_ONLY_AS_ADMIN], ephemeral: true });
 
     switch (interaction.options.getSubcommand()) {
       case "gamechannel": {
 
         const newChannel = interaction.options.getChannel("gamechannel");
+        if (!newChannel) return interaction.reply({ embeds: [ERR_BASE], ephemeral: true });
         /*
         const unoConfigId = await getUnoConfigId(interaction.guildId);
 

@@ -18,7 +18,7 @@ export default class TutorialCommand {
           .setEmoji(randomItem(positiveEmojis))
       );
     await interaction.reply({ embeds: [TUTORIAL_EMBED_USER], ephemeral: true, components: [row] });
-    if (interaction.memberPermissions.has(Permissions.FLAGS.ADMINISTRATOR)) {
+    if (interaction.memberPermissions?.has(Permissions.FLAGS.ADMINISTRATOR)) {
       await interaction.followUp({ embeds: [TUTORIAL_EMBED_ADMIN], ephemeral: true });
     }
   }

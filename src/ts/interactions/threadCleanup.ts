@@ -7,7 +7,7 @@ export default class ThreadCleanupCommand {
 
   @interactionListener("threadcleanup", "APPLICATION_COMMAND")
   onThreadCleanup(interaction: CommandInteraction) {
-    interaction.guild.channels.cache.map(channel => {
+    interaction.guild?.channels.cache.map(channel => {
       if (channel.isThread() && channel.name.startsWith("game-") && channel.archived) {
         channel.delete();
       }
