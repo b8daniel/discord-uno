@@ -13,7 +13,7 @@ export default class UNOButtons {
     const currentlyPlaying = getGamefromUser(interaction.user.id);
 
     if (currentlyPlaying) return interaction.reply({ embeds: [BASE_EMB.setDescription(lang.playingIn.replace("{0}", currentlyPlaying.threadId))], ephemeral: true });
-    if (!(interaction.channel instanceof TextChannel)) return interaction.reply({ embeds: [ERR_BASE.setFooter(lang.channelNotText)] });
+    if (!(interaction.channel instanceof TextChannel)) return interaction.reply({ embeds: [ERR_BASE.setFooter(lang.channelNotText)], ephemeral: true });
 
     await createGame(interaction.user, interaction.channel);
 
@@ -23,14 +23,14 @@ export default class UNOButtons {
   @interactionListener("uno-creategame-notify", "MESSAGE_COMPONENT")
   async wantsToToggleNotified(interaction: ButtonInteraction) {
     const role = interaction.guild?.roles.resolve(notifyRoleId);
-    if (!role) return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setDescription(lang.roleNotFound)] });
+    if (!role) return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setDescription(lang.roleNotFound)], ephemeral: true });
 
     if (role.members.has(interaction.user.id)) {
       await (interaction.member.roles as GuildMemberRoleManager).remove(role);
-      return interaction.reply({ embeds: [new MessageEmbed(BASE_EMB).setDescription(lang.notifyOff)] });
+      return interaction.reply({ embeds: [new MessageEmbed(BASE_EMB).setDescription(lang.notifyOff)], ephemeral: true });
     } else {
       await (interaction.member.roles as GuildMemberRoleManager).add(role);
-      return interaction.reply({ embeds: [new MessageEmbed(BASE_EMB).setDescription(lang.notifyOn)] });
+      return interaction.reply({ embeds: [new MessageEmbed(BASE_EMB).setDescription(lang.notifyOn)], ephemeral: true });
     }
 
   }
