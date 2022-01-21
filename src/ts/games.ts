@@ -1,4 +1,4 @@
-import { Client, Message, MessageActionRow, MessageAttachment, MessageComponentInteraction, MessageEmbed, MessageSelectMenu, MessageSelectOptionData, TextChannel, ThreadChannel, User } from "discord.js";
+import { Client, Guild, Message, MessageActionRow, MessageAttachment, MessageComponentInteraction, MessageEmbed, MessageSelectMenu, MessageSelectOptionData, Sticker, TextChannel, ThreadChannel, User } from "discord.js";
 import { notifyRoleId } from "./config";
 import { BASE_EMB, ERR_BASE, HAND_CARD_COMPONENTS, INGAME_COMPONENTS, JOIN_GAME_EMBED, WIN_EMBED } from "./embeds";
 import { generateCards, generateOverview, UnoCard, UnoColor, UnoType } from "./images";
@@ -94,7 +94,7 @@ export async function createGame(creator: User, channel: TextChannel) {
     gameId: nextGameId++,
     infoMessageId: infoMessage.id,
     overviewMessageId: null,
-    creator: creator.username,
+    creator: await getGuildName(creator, channel.guild),
     startTime: -1,
     players: [],
     threadId: newThread.id,
@@ -224,12 +224,18 @@ function takeRandomCards(count: number, cards: UnoCard[], newStack: () => UnoCar
   return takenCards;
 }
 
-async function overviewFromGameData(data: RunningGame, client: Client) {
+async function getGuildName(user: User, guild?: Guild) {
+  const guildUser = await guild?.members.fetch(user);
+  return guildUser?.displayName ?? user.username;
+}
+
+async function overviewFromGameData(data: RunningGame, client: Client, guild: Guild) {
+
   return generateOverview({
     playedCards: data.gameState.lastPlayedCards,
     players: await Promise.all(data.players.map(async plId => ({
       cardsLeft: data.gameState.handCards[plId]?.length || 7,
-      name: (await client.users.fetch(plId)).username
+      name: (await getGuildName(await client.users.fetch(plId), guild)),
     }))),
     playingDirection: data.gameState.playingDirection,
     upNow: data.gameState.upNow,
@@ -262,7 +268,7 @@ export async function updateOverview(thread: ThreadChannel, playersChanged = fal
     });
   }
 
-  const overviewFile = new MessageAttachment((await overviewFromGameData(gameObject, thread.client)).toBuffer("image/png"), "overview.png");
+  const overviewFile = new MessageAttachment((await overviewFromGameData(gameObject, thread.client, thread.guild)).toBuffer("image/png"), "overview.png");
   if (gameObject.overviewMessageId) {
     await thread.messages.fetch(gameObject.overviewMessageId).then(msg => msg.delete());
   }
