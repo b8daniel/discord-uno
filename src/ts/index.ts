@@ -40,7 +40,16 @@ client.on("threadMembersUpdate", async (oldMembers, newMembers) => {
 
   const thread = oldMembers.concat(newMembers).first()?.thread;
   if (!thread) return;
-  if (isGameThread(thread.id)) await onGameMembersUpdate(thread, newMembers);
+  const memberDiff = oldMembers.difference(newMembers); // [123456, 123457, 123458]
+
+  const clientId = client.user?.id;
+  if (clientId) memberDiff.delete(clientId);
+
+  if (isGameThread(thread.id)) await onGameMembersUpdate(
+    thread,
+    Array.from(newMembers.intersect(memberDiff).keys()),
+    Array.from(oldMembers.intersect(memberDiff).keys())
+  );
 
 });
 

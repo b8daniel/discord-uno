@@ -23,6 +23,7 @@ enum TranslatedString {
   GAME_STARTED_BY = 'gameStartedBy',
   PLAYERS = 'players',
   START = 'start',
+  DURATION = 'duration',
   START_ON_FIRST_CARD = 'startOnFirstCard',
   PLACE_CARD = 'placeCard',
   CHOOSE = 'choose',
@@ -37,6 +38,8 @@ enum TranslatedString {
   ROLE_NOT_FOUND = 'roleNotFound',
   NOTIFY_ON = 'notifyOn',
   NOTIFY_OFF = 'notifyOff',
+  JOINED_AS_SPECTATOR = 'joinedAsSpectator',
+  ALL_PLAYERS_LEFT = 'allPlayersLeft',
 }
 /*
 const de: { [key in TranslatedString]: string } = {
@@ -68,6 +71,7 @@ const en: { [key in TranslatedString]: string } = {
   gameStartedBy: "Game started by<@{0}>",
   players: "players",
   start: "start",
+  duration: "duration",
   startOnFirstCard: "when the first card is played",
   placeCard: "place a card",
   choose: "choose",
@@ -82,6 +86,8 @@ const en: { [key in TranslatedString]: string } = {
   roleNotFound: "The role couldn't be found",
   notifyOn: "Notifications are now on",
   notifyOff: "Notifications are now off",
+  joinedAsSpectator: "The game is already started - joined as a spectator",
+  allPlayersLeft: "All players left the game, the game is over",
 };
 const de: { [key in TranslatedString]: string } = {
   playingIn: 'Du spielst gerade in <#{0}>',
@@ -108,6 +114,7 @@ const de: { [key in TranslatedString]: string } = {
   gameStartedBy: "Spiel gestartet von {0}",
   players: "Spieler",
   start: "Start",
+  duration: "Dauer",
   startOnFirstCard: "wenn die erste Karte gespielt wird",
   placeCard: "Karte ablegen",
   choose: "gewünscht",
@@ -122,6 +129,8 @@ const de: { [key in TranslatedString]: string } = {
   roleNotFound: "Die Rolle konnte nicht gefunden werden",
   notifyOn: "Benachrichtigungen sind nun eingeschaltet",
   notifyOff: "Benachrichtigungen sind nun ausgeschaltet",
+  joinedAsSpectator: "Das Spiel ist bereits gestartet - als Zuschauer beigetreten",
+  allPlayersLeft: "Alle Spieler haben das Spiel verlassen, das Spiel ist beendet",
 };
 
 export const lang = de;

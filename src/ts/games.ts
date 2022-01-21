@@ -1,4 +1,4 @@
-import { Client, ClientEvents, Message, MessageActionRow, MessageAttachment, MessageComponentInteraction, MessageEmbed, MessageSelectMenu, MessageSelectOptionData, TextChannel, ThreadChannel, User } from "discord.js";
+import { Client, Message, MessageActionRow, MessageAttachment, MessageComponentInteraction, MessageEmbed, MessageSelectMenu, MessageSelectOptionData, TextChannel, ThreadChannel, User } from "discord.js";
 import { notifyRoleId } from "./config";
 import { BASE_EMB, ERR_BASE, HAND_CARD_COMPONENTS, INGAME_COMPONENTS, JOIN_GAME_EMBED, WIN_EMBED } from "./embeds";
 import { generateCards, generateOverview, UnoCard, UnoColor, UnoType } from "./images";
@@ -8,6 +8,29 @@ export const runningGames: RunningGame[] = [];
 let nextGameId = 0;
 
 const startCardCount = 7;
+
+class UnoState {
+  upNow: number = 0;
+  waitingForUno: boolean = false;
+  cardsInStack: UnoCard[];
+  lastPlayedCards: UnoCard[];
+  handCards: Record<string, UnoCard[]> = {};
+  cardsTaken: Record<string, number> = {}; // to disallow taking two cards in a row
+  cardDisplayIds: Record<string, string> = {};
+  playingDirection: 1 | -1 = -1;
+  cardsToTake: number = 0;
+
+  constructor() {
+    const cardStack = getAllUnoCards();
+    const firstCard = takeRandomCards(1, cardStack, getAllUnoCards);
+    this.cardsInStack = cardStack;
+    this.lastPlayedCards = firstCard;
+  }
+
+  setNextPlayer(playerCount: number) {
+    this.upNow = (this.upNow + playerCount + this.playingDirection) % playerCount;
+  }
+}
 
 type RunningGame = {
   gameId: number,
@@ -19,19 +42,6 @@ type RunningGame = {
   gameState: UnoState,
   running: boolean,
   startTime: number, // -1 -> waiting for players else UNIX timestamp
-};
-
-type UnoState = {
-  upNow: number,
-  waitingForUno: boolean,
-  cardsInStack: UnoCard[],
-  lastPlayedCards: UnoCard[], // 3 last played cards
-  stats: Record<number, number>,
-  handCards: Record<string, UnoCard[]>,
-  cardsTaken: Record<string, number>, // to disallow taking two cards in a row
-  cardDisplayIds: Record<string, string>,
-  playingDirection: 1 | -1,
-  cardsToTake: number,
 };
 
 export const unoColorEmojis: Record<UnoColor, string> = {
@@ -70,7 +80,7 @@ export function getGameFromThread(threadId: string): RunningGame | undefined {
 
 export async function createGame(creator: User, channel: TextChannel) {
   const infoMessage = await channel.send({
-    embeds: [generateJoinGameEmbed([], creator.username, 0)],
+    embeds: [generateInfoEmbed([], creator.username, 0)],
     content: await channel.guild.roles.fetch(notifyRoleId) && `<@&${notifyRoleId}>`,
   });
 
@@ -79,8 +89,6 @@ export async function createGame(creator: User, channel: TextChannel) {
     autoArchiveDuration: 60,
     reason: `<@${creator.id}> started a new game!`,
   });
-
-  const unoCardStack = getAllUnoCards();
 
   const newGameData: RunningGame = {
     gameId: nextGameId++,
@@ -91,21 +99,7 @@ export async function createGame(creator: User, channel: TextChannel) {
     players: [],
     threadId: newThread.id,
     running: false,
-    gameState: {
-      waitingForUno: false,
-      cardsInStack: unoCardStack,
-      handCards: {},
-      lastPlayedCards:
-        takeRandomCards(1, unoCardStack, getAllUnoCards),
-      // //! only for testing
-      // [{ color: UnoColor.BLACK, type: UnoType.WILD }],
-      upNow: 0,
-      stats: {},
-      playingDirection: -1 as const,
-      cardDisplayIds: {},
-      cardsTaken: {},
-      cardsToTake: 0,
-    }
+    gameState: new UnoState(),
   };
   runningGames.push(newGameData);
 
@@ -116,35 +110,92 @@ export function isGameThread(threadId: string) {
   return runningGames.findIndex(gme => gme.threadId === threadId) >= 0;
 }
 
-export async function onGameMembersUpdate(thread: ThreadChannel, updatedMembers: ClientEvents["threadMembersUpdate"]["1"]) {
+function isInGame(userId: string) {
+  return runningGames.findIndex(gme => gme.players.includes(userId)) != -1;
+}
+
+export async function onGameMembersUpdate(thread: ThreadChannel, membersJoinedIds: string[], membersLeftIds: string[]) { //TODO refactor to only accept one joined/left member and no list
   const gameObject = runningGames.find(gme => gme.threadId === thread.id);
   if (!gameObject || !thread.guild) return;
-  const memberIds = Array.from(updatedMembers.keys()).filter(id => id !== thread.guild.me?.id);
-  // update players on gameObject and embed
-  gameObject.players = memberIds;
 
-  if (!gameObject.running) {
-    memberIds.forEach(id => {
-      if (!gameObject.gameState.handCards[id]) {
-        gameObject.gameState.handCards[id] =
-          takeRandomCards(startCardCount, gameObject.gameState.cardsInStack, getAllUnoCards);
-        //! only for testing
-        // [{ type: UnoType.WILD, color: UnoColor.BLACK }, { type: UnoType.DRAW_TWO, color: UnoColor.RED }, { type: UnoType.DRAW_TWO, color: UnoColor.GREEN }, { type: UnoType.DRAW_TWO, color: UnoColor.RED }, { type: UnoType.REVERSE, color: UnoColor.YELLOW }, { type: UnoType.REVERSE, color: UnoColor.RED }];
-      }
+  if (membersJoinedIds.length > 0) {
+    const membersJoinedEmbed = new MessageEmbed(BASE_EMB).setDescription("➡ " + membersJoinedIds.map(id => `<@${id}>`).join(", "));
+    if (gameObject.running) membersJoinedEmbed.setFooter(lang.joinedAsSpectator);
+    thread.send({ embeds: [membersJoinedEmbed] });
+  }
+  if (membersLeftIds.length > 0) {
+    thread.send({
+      embeds: [
+        new MessageEmbed(BASE_EMB).setDescription("⬅ " + membersLeftIds.map(id => `<@${id}>`).join(", "))
+      ]
     });
   }
 
-  const threadMessage = await thread.fetchStarterMessage();
-  await threadMessage.edit({ embeds: [generateJoinGameEmbed(gameObject.players, gameObject.creator, gameObject.startTime)] });
-  // update the game overview
-  await updateOverview(thread, true);
+  let shouldUpdateOverview = false;
+  const { gameState } = gameObject;
+
+  if (!gameObject.running) membersJoinedIds.map(async (memberId) => {
+    if (!isInGame(memberId)) {
+      shouldUpdateOverview = true;
+
+      gameObject.players.push(memberId);
+
+      // give cards to new player
+      if (!gameState.handCards[memberId]) {
+        gameState.handCards[memberId] =
+          takeRandomCards(startCardCount, gameState.cardsInStack, getAllUnoCards);
+      }
+    }
+  });
+  membersLeftIds.map(async (memberId) => {
+    const memberIndex = gameObject.players.findIndex(pl => pl === memberId);
+    if (memberIndex >= 0) {
+      let playerUpNow = gameObject.players[gameState.upNow];
+      if (memberIndex === gameState.upNow) {
+        gameState.setNextPlayer(gameObject.players.length);
+        playerUpNow = gameObject.players[gameState.upNow];
+      }
+      shouldUpdateOverview = true;
+      gameObject.players.splice(memberIndex, 1);
+      gameState.upNow = gameObject.players.findIndex(pl => pl === playerUpNow);
+    }
+  });
+
+  // update the game overview (if needed)
+  if (shouldUpdateOverview) await Promise.all([
+    updateOverview(thread, true),
+    (await thread.fetchStarterMessage())
+      .edit({ embeds: [generateInfoEmbed(gameObject.players, gameObject.creator, gameObject.startTime)] })
+  ]);
+
+  if (gameObject.players.length === 0) {
+    await thread.send({
+      embeds: [
+        new MessageEmbed(BASE_EMB).setDescription("😕 " + lang.allPlayersLeft)
+      ]
+    });
+    await endGame(thread); //! dont acces the thread now - it's archived!
+  }
 }
 
-function generateJoinGameEmbed(playerIds: string[], creator: string, startTime: number) {
-  return new MessageEmbed(JOIN_GAME_EMBED)
+function generateInfoEmbed(playerIds: string[], creator: string, startTime: number, duration?: number) {
+  const infoEmbed = new MessageEmbed(JOIN_GAME_EMBED)
     .setAuthor(lang.gameStartedBy.replace("{0}", creator))
     .addField(lang.players + ":", playerIds.length > 0 ? playerIds.map(id => `<@${id}>`).join(", ") : "∅", true)
     .addField(lang.start + ":", startTime === -1 ? lang.startOnFirstCard : `<t:${Math.round(startTime / 1000)}:R>`, true);
+
+  if (duration) {
+    const durationDate = new Date(duration);
+    infoEmbed.addField(lang.duration + ":", durationDate.toLocaleTimeString("default", {
+      hour12: false,
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      timeZone: "GMT",
+    }), true);
+  }
+
+  return infoEmbed;
 }
 
 function getAllUnoCards() {
@@ -177,7 +228,7 @@ async function overviewFromGameData(data: RunningGame, client: Client) {
   return generateOverview({
     playedCards: data.gameState.lastPlayedCards,
     players: await Promise.all(data.players.map(async plId => ({
-      cardsLeft: data.gameState.handCards[plId].length,
+      cardsLeft: data.gameState.handCards[plId]?.length || 7,
       name: (await client.users.fetch(plId)).username
     }))),
     playingDirection: data.gameState.playingDirection,
@@ -198,15 +249,16 @@ export function removeGame(threadId: string) {
   runningGames.splice(gameObjectIndex, 1);
 }
 
-export async function updateOverview(thread: ThreadChannel, playerJoined = false) {
+export async function updateOverview(thread: ThreadChannel, playersChanged = false) {
   const gameObject = runningGames.find(gme => gme.threadId === thread.id);
   if (!gameObject) return;
 
-  if (!gameObject.running && !playerJoined) {
+  if (!gameObject.running && !playersChanged) {
     gameObject.running = true;
     gameObject.startTime = Date.now();
+    // show that the game has started
     thread.fetchStarterMessage().then(starterMessage => {
-      starterMessage.edit({ embeds: [generateJoinGameEmbed(gameObject.players, gameObject.creator, gameObject.startTime)] });
+      starterMessage.edit({ embeds: [generateInfoEmbed(gameObject.players, gameObject.creator, gameObject.startTime)] });
     });
   }
 
@@ -225,7 +277,7 @@ export async function updateHandCards(interaction: MessageComponentInteraction) 
 
   const needsToDrawCards = gameObject.players[gameObject.gameState.upNow] === interaction.user.id && gameObject.gameState.cardsToTake > 0;
   if (needsToDrawCards) {
-    gameObject.gameState.handCards[interaction.user.id].push(...takeRandomCards(gameObject.gameState.cardsToTake, gameObject.gameState.cardsInStack, getAllUnoCards));
+    gameObject.gameState.handCards[interaction.user.id].push(...takeRandomCards(gameObject.gameState.cardsToTake, gameObject.gameState.cardsInStack, getAllUnoCards)); //? "null pointer"
     gameObject.gameState.cardsToTake = 0;
   }
 
@@ -271,6 +323,20 @@ export async function updateHandCards(interaction: MessageComponentInteraction) 
   if (needsToDrawCards && interaction.channel instanceof ThreadChannel) await updateOverview(interaction.channel);
 }
 
+async function endGame(gameThread: ThreadChannel) {
+  const gameObjectIndex = runningGames.findIndex(gme => gme.threadId === gameThread.id);
+  const gameObject = runningGames[gameObjectIndex];
+  const endMessage = generateInfoEmbed(gameObject.players, gameObject.creator, gameObject.startTime, (gameObject.startTime === -1 ? 0 : Date.now() - gameObject.startTime));
+  await gameThread.send({ embeds: [endMessage] });
+  const startMessage = await gameThread.fetchStarterMessage();
+  await gameThread.setArchived(true);
+
+  runningGames.splice(gameObjectIndex, 1);
+  setTimeout(() => { //* not async/awaited
+    startMessage.delete().catch(() => console.debug("could not delete starter message"));
+  }, 25e3);
+}
+
 //TODO respond to interaction with overview
 export async function playCard(interaction: MessageComponentInteraction, cardIndex: number, cardColor?: UnoColor) {
   const gameObject = runningGames.find(gme => gme.threadId === interaction.channelId);
@@ -308,8 +374,7 @@ export async function playCard(interaction: MessageComponentInteraction, cardInd
     await interaction.editReply(lang.youWin);
     await interaction.followUp({ embeds: [new MessageEmbed(WIN_EMBED).setAuthor(lang.congrats.replace("{0}", interaction.user.username))] });
     if (interaction.channel.isThread()) {
-      await interaction.channel.setArchived(true);
-      runningGames.splice(runningGames.findIndex(gme => gme.threadId === interaction.channelId), 1);
+      endGame(interaction.channel);
     }
     return;
   }
@@ -320,14 +385,14 @@ export async function playCard(interaction: MessageComponentInteraction, cardInd
   }
 
   if (!(card.type === UnoType.REVERSE && gameObject.players.length === 2)) {
-    gameObject.gameState.upNow = (gameObject.gameState.upNow + gameObject.players.length + gameObject.gameState.playingDirection) % gameObject.players.length;
+    gameObject.gameState.setNextPlayer(gameObject.players.length);
   }
   const nextPlayerId = gameObject.players[gameObject.gameState.upNow];
   // special effects
   //TODO +2 stacking
   switch (card.type) {
     case UnoType.SKIP: {
-      gameObject.gameState.upNow = (gameObject.gameState.upNow + gameObject.players.length + gameObject.gameState.playingDirection) % gameObject.players.length;
+      gameObject.gameState.setNextPlayer(gameObject.players.length);
       // 0, 1
       // -1 -> 1
       // -1 + 2 -> 1
@@ -343,7 +408,7 @@ export async function playCard(interaction: MessageComponentInteraction, cardInd
       break;
     }
     case UnoType.WILD_DRAW_FOUR: {
-      gameObject.gameState.handCards[nextPlayerId].push(...takeRandomCards(4, gameObject.gameState.cardsInStack, getAllUnoCards));
+      gameObject.gameState.handCards[nextPlayerId].push(...takeRandomCards(4, gameObject.gameState.cardsInStack, getAllUnoCards)); //? "null pointer" 
       await interaction.channel.send({ embeds: [new MessageEmbed(BASE_EMB).setDescription(lang.drawCardsFour.replace("{0}", nextPlayerId))] });
       break;
     }
@@ -357,7 +422,7 @@ export function giveCardsToPlayer(playerId: string, thread: ThreadChannel, count
   const gameObject = runningGames.find(gme => gme.threadId === thread.id);
   if (!gameObject) return;
 
-  gameObject.gameState.handCards[playerId].push(...takeRandomCards(count, gameObject.gameState.cardsInStack, getAllUnoCards));
+  gameObject.gameState.handCards[playerId].push(...takeRandomCards(count, gameObject.gameState.cardsInStack, getAllUnoCards)); //? "null pointer"
   if (!gameObject.gameState.cardsTaken[playerId]) gameObject.gameState.cardsTaken[playerId] = 0;
   gameObject.gameState.cardsTaken[playerId] += count;
 }
