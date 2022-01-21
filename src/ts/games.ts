@@ -334,7 +334,7 @@ async function endGame(gameThread: ThreadChannel) {
   runningGames.splice(gameObjectIndex, 1);
   setTimeout(() => { //* not async/awaited
     startMessage.delete().catch(() => console.debug("could not delete starter message"));
-  }, 25e3);
+  }, 180e3);
 }
 
 //TODO respond to interaction with overview
