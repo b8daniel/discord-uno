@@ -163,7 +163,7 @@ export async function onGameMembersUpdate(thread: ThreadChannel, membersJoinedId
 
   // update the game overview (if needed)
   if (shouldUpdateOverview) await Promise.all([
-    updateOverview(thread, true),
+    updateOverview(thread),
     (await thread.fetchStarterMessage())
       .edit({ embeds: [generateInfoEmbed(gameObject.players, gameObject.creator, gameObject.startTime)] })
   ]);
@@ -255,18 +255,9 @@ export function removeGame(threadId: string) {
   runningGames.splice(gameObjectIndex, 1);
 }
 
-export async function updateOverview(thread: ThreadChannel, playersChanged = false) {
+export async function updateOverview(thread: ThreadChannel) {
   const gameObject = runningGames.find(gme => gme.threadId === thread.id);
   if (!gameObject) return;
-
-  if (!gameObject.running && !playersChanged) {
-    gameObject.running = true;
-    gameObject.startTime = Date.now();
-    // show that the game has started
-    thread.fetchStarterMessage().then(starterMessage => {
-      starterMessage.edit({ embeds: [generateInfoEmbed(gameObject.players, gameObject.creator, gameObject.startTime)] });
-    });
-  }
 
   const overviewFile = new MessageAttachment((await overviewFromGameData(gameObject, thread.client, thread.guild)).toBuffer("image/png"), "overview.png");
   if (gameObject.overviewMessageId) {
@@ -347,6 +338,15 @@ async function endGame(gameThread: ThreadChannel) {
 export async function playCard(interaction: MessageComponentInteraction, cardIndex: number, cardColor?: UnoColor) {
   const gameObject = runningGames.find(gme => gme.threadId === interaction.channelId);
   if (!gameObject || !interaction.channel?.isThread()) return;
+
+  if (!gameObject.running) {
+    gameObject.running = true;
+    gameObject.startTime = Date.now();
+    // show that the game has started
+    interaction.channel.fetchStarterMessage().then(starterMessage => {
+      starterMessage.edit({ embeds: [generateInfoEmbed(gameObject.players, gameObject.creator, gameObject.startTime)] });
+    });
+  }
 
   // reply within 3 seconds
   await interaction.reply({ content: lang.yourCards, ephemeral: true });
