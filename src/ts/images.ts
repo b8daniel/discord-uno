@@ -42,7 +42,7 @@ const ImageAssets: Record<AssetPathNames, ImageAsset> = {
   }
 };
 
-enum ColorScheme {
+export enum ColorScheme {
   GRAY_0 = "#202225",
   GRAY_1 = "#2F3136",
   GRAY_2 = "#36393F",

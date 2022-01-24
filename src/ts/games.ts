@@ -1,7 +1,7 @@
 import { Client, Guild, Message, MessageActionRow, MessageAttachment, MessageComponentInteraction, MessageEmbed, MessageSelectMenu, MessageSelectOptionData, Sticker, TextChannel, ThreadChannel, User } from "discord.js";
 import { notifyRoleId } from "./config";
 import { BASE_EMB, ERR_BASE, HAND_CARD_COMPONENTS, INGAME_COMPONENTS, JOIN_GAME_EMBED, WIN_EMBED } from "./embeds";
-import { generateCards, generateOverview, UnoCard, UnoColor, UnoType } from "./images";
+import { ColorScheme, generateCards, generateOverview, UnoCard, UnoColor, UnoType } from "./images";
 import { lang } from "./lang";
 
 export const runningGames: RunningGame[] = [];
@@ -94,7 +94,7 @@ export async function createGame(creator: User, channel: TextChannel) {
     gameId: nextGameId++,
     infoMessageId: infoMessage.id,
     overviewMessageId: null,
-    creator: await getGuildName(creator, channel.guild),
+    creator: await getGuildNickname(creator, channel.guild),
     startTime: -1,
     players: [],
     threadId: newThread.id,
@@ -126,12 +126,13 @@ export async function onGameMembersUpdate(thread: ThreadChannel, membersJoinedId
   if (membersLeftIds.length > 0) {
     thread.send({
       embeds: [
-        new MessageEmbed(BASE_EMB).setDescription("⬅ " + membersLeftIds.map(id => `<@${id}>`).join(", "))
+        new MessageEmbed(BASE_EMB).setColor(ColorScheme.DANGER).setDescription("⬅ " + membersLeftIds.map(id => `<@${id}>`).join(", "))
       ]
     });
   }
 
   let shouldUpdateOverview = false;
+  let gameMemberLeft = false;
   const { gameState } = gameObject;
 
   if (!gameObject.running) membersJoinedIds.map(async (memberId) => {
@@ -150,10 +151,12 @@ export async function onGameMembersUpdate(thread: ThreadChannel, membersJoinedId
   membersLeftIds.map(async (memberId) => {
     const memberIndex = gameObject.players.findIndex(pl => pl === memberId);
     if (memberIndex >= 0) {
+      gameMemberLeft = true;
       let playerUpNow = gameObject.players[gameState.upNow];
       if (memberIndex === gameState.upNow) {
         gameState.setNextPlayer(gameObject.players.length);
         playerUpNow = gameObject.players[gameState.upNow];
+        gameState.waitingForUno = false;
       }
       shouldUpdateOverview = true;
       gameObject.players.splice(memberIndex, 1);
@@ -175,6 +178,11 @@ export async function onGameMembersUpdate(thread: ThreadChannel, membersJoinedId
       ]
     });
     await endGame(thread); //! dont acces the thread now - it's archived!
+  } else if (gameObject.players.length === 1 && gameMemberLeft) {
+    const winningPlayer = (await thread.members.fetch(gameObject.players[0])).user;
+    if (!winningPlayer) return;
+    await thread.send({ embeds: [new MessageEmbed(WIN_EMBED).setAuthor(lang.congrats.replace("{0}", await getGuildNickname(winningPlayer, thread.guild)))] });
+    await endGame(thread);
   }
 }
 
@@ -188,7 +196,6 @@ function generateInfoEmbed(playerIds: string[], creator: string, startTime: numb
     const durationDate = new Date(duration);
     infoEmbed.addField(lang.duration + ":", durationDate.toLocaleTimeString("default", {
       hour12: false,
-      hour: "2-digit",
       minute: "2-digit",
       second: "2-digit",
       timeZone: "GMT",
@@ -224,7 +231,7 @@ function takeRandomCards(count: number, cards: UnoCard[], newStack: () => UnoCar
   return takenCards;
 }
 
-async function getGuildName(user: User, guild?: Guild) {
+async function getGuildNickname(user: User, guild: Guild | undefined | null) {
   const guildUser = await guild?.members.fetch(user);
   return guildUser?.displayName ?? user.username;
 }
@@ -234,8 +241,8 @@ async function overviewFromGameData(data: RunningGame, client: Client, guild: Gu
   return generateOverview({
     playedCards: data.gameState.lastPlayedCards,
     players: await Promise.all(data.players.map(async plId => ({
-      cardsLeft: data.gameState.handCards[plId]?.length || 7,
-      name: (await getGuildName(await client.users.fetch(plId), guild)),
+      cardsLeft: data.gameState.handCards[plId]?.length || 0,
+      name: (await getGuildNickname(await client.users.fetch(plId), guild)),
     }))),
     playingDirection: data.gameState.playingDirection,
     upNow: data.gameState.upNow,
@@ -378,7 +385,7 @@ export async function playCard(interaction: MessageComponentInteraction, cardInd
     //TODO end game
     await updateOverview(interaction.channel);
     await interaction.editReply(lang.youWin);
-    await interaction.followUp({ embeds: [new MessageEmbed(WIN_EMBED).setAuthor(lang.congrats.replace("{0}", interaction.user.username))] });
+    await interaction.followUp({ embeds: [new MessageEmbed(WIN_EMBED).setAuthor(lang.congrats.replace("{0}", await getGuildNickname(interaction.user, interaction.guild)))] });
     if (interaction.channel.isThread()) {
       endGame(interaction.channel);
     }
