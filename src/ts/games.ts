@@ -232,7 +232,7 @@ function takeRandomCards(count: number, cards: UnoCard[], newStack: () => UnoCar
 }
 
 async function getGuildNickname(user: User, guild: Guild | undefined | null) {
-  const guildUser = await guild?.members.fetch(user);
+  const guildUser = await guild?.members.fetch(user).catch();
   return guildUser?.displayName ?? user.username;
 }
 
@@ -268,7 +268,7 @@ export async function updateOverview(thread: ThreadChannel) {
 
   const overviewFile = new MessageAttachment((await overviewFromGameData(gameObject, thread.client, thread.guild)).toBuffer("image/png"), "overview.png");
   if (gameObject.overviewMessageId) {
-    await thread.messages.fetch(gameObject.overviewMessageId).then(msg => msg.delete());
+    await thread.messages.fetch(gameObject.overviewMessageId).then(async msg => await msg.delete()).catch();
   }
 
   const newMessage = await thread.send({ files: [overviewFile], components: INGAME_COMPONENTS });
