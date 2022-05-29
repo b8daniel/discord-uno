@@ -1,6 +1,27 @@
-import { Client, Guild, Message, MessageActionRow, MessageAttachment, MessageComponentInteraction, MessageEmbed, MessageSelectMenu, MessageSelectOptionData, Sticker, TextChannel, ThreadChannel, User } from "discord.js";
+import {
+  Client,
+  Guild,
+  Message,
+  MessageActionRow,
+  MessageAttachment,
+  MessageComponentInteraction,
+  MessageEmbed,
+  MessageSelectMenu,
+  MessageSelectOptionData,
+  Sticker,
+  TextChannel,
+  ThreadChannel,
+  User,
+} from "discord.js";
 import { notifyRoleId } from "./config";
-import { BASE_EMB, ERR_BASE, HAND_CARD_COMPONENTS, INGAME_COMPONENTS, JOIN_GAME_EMBED, WIN_EMBED } from "./embeds";
+import {
+  BASE_EMB,
+  ERR_BASE,
+  HAND_CARD_COMPONENTS,
+  INGAME_COMPONENTS,
+  JOIN_GAME_EMBED,
+  WIN_EMBED,
+} from "./embeds";
 import { ColorScheme, generateCards, generateOverview, UnoCard, UnoColor, UnoType } from "./images";
 import { lang } from "./lang";
 
@@ -33,15 +54,15 @@ class UnoState {
 }
 
 type RunningGame = {
-  gameId: number,
-  creator: string,
-  infoMessageId: string,
-  overviewMessageId: string | null,
-  threadId: string,
-  players: string[],
-  gameState: UnoState,
-  running: boolean,
-  startTime: number, // -1 -> waiting for players else UNIX timestamp
+  gameId: number;
+  creator: string;
+  infoMessageId: string;
+  overviewMessageId: string | null;
+  threadId: string;
+  players: string[];
+  gameState: UnoState;
+  running: boolean;
+  startTime: number; // -1 -> waiting for players else UNIX timestamp
 };
 
 export const unoColorEmojis: Record<UnoColor, string> = {
@@ -81,7 +102,7 @@ export function getGameFromThread(threadId: string): RunningGame | undefined {
 export async function createGame(creator: User, channel: TextChannel) {
   const infoMessage = await channel.send({
     embeds: [generateInfoEmbed([], creator.username, 0)],
-    content: await channel.guild.roles.fetch(notifyRoleId) && `<@&${notifyRoleId}>`,
+    content: (await channel.guild.roles.fetch(notifyRoleId)) && `<@&${notifyRoleId}>`,
   });
 
   const newThread = await infoMessage.startThread({
@@ -114,20 +135,29 @@ function isInGame(userId: string) {
   return runningGames.findIndex(gme => gme.players.includes(userId)) != -1;
 }
 
-export async function onGameMembersUpdate(thread: ThreadChannel, membersJoinedIds: string[], membersLeftIds: string[]) { //TODO refactor to only accept one joined/left member and no list
+export async function onGameMembersUpdate(
+  thread: ThreadChannel,
+  membersJoinedIds: string[],
+  membersLeftIds: string[]
+) {
+  //TODO refactor to only accept one joined/left member and no list
   const gameObject = runningGames.find(gme => gme.threadId === thread.id);
   if (!gameObject || !thread.guild) return;
 
   if (membersJoinedIds.length > 0) {
-    const membersJoinedEmbed = new MessageEmbed(BASE_EMB).setDescription("➡ " + membersJoinedIds.map(id => `<@${id}>`).join(", "));
+    const membersJoinedEmbed = new MessageEmbed(BASE_EMB).setDescription(
+      "➡ " + membersJoinedIds.map(id => `<@${id}>`).join(", ")
+    );
     if (gameObject.running) membersJoinedEmbed.setFooter(lang.joinedAsSpectator);
     thread.send({ embeds: [membersJoinedEmbed] });
   }
   if (membersLeftIds.length > 0) {
     thread.send({
       embeds: [
-        new MessageEmbed(BASE_EMB).setColor(ColorScheme.DANGER).setDescription("⬅ " + membersLeftIds.map(id => `<@${id}>`).join(", "))
-      ]
+        new MessageEmbed(BASE_EMB)
+          .setColor(ColorScheme.DANGER)
+          .setDescription("⬅ " + membersLeftIds.map(id => `<@${id}>`).join(", ")),
+      ],
     });
   }
 
@@ -135,20 +165,24 @@ export async function onGameMembersUpdate(thread: ThreadChannel, membersJoinedId
   let gameMemberLeft = false;
   const { gameState } = gameObject;
 
-  if (!gameObject.running) membersJoinedIds.map(async (memberId) => {
-    if (!isInGame(memberId)) {
-      shouldUpdateOverview = true;
+  if (!gameObject.running)
+    membersJoinedIds.map(async memberId => {
+      if (!isInGame(memberId)) {
+        shouldUpdateOverview = true;
 
-      gameObject.players.push(memberId);
+        gameObject.players.push(memberId);
 
-      // give cards to new player
-      if (!gameState.handCards[memberId]) {
-        gameState.handCards[memberId] =
-          takeRandomCards(startCardCount, gameState.cardsInStack, getAllUnoCards);
+        // give cards to new player
+        if (!gameState.handCards[memberId]) {
+          gameState.handCards[memberId] = takeRandomCards(
+            startCardCount,
+            gameState.cardsInStack,
+            getAllUnoCards
+          );
+        }
       }
-    }
-  });
-  membersLeftIds.map(async (memberId) => {
+    });
+  membersLeftIds.map(async memberId => {
     const memberIndex = gameObject.players.findIndex(pl => pl === memberId);
     if (memberIndex >= 0) {
       gameMemberLeft = true;
@@ -165,41 +199,66 @@ export async function onGameMembersUpdate(thread: ThreadChannel, membersJoinedId
   });
 
   // update the game overview (if needed)
-  if (shouldUpdateOverview) await Promise.all([
-    updateOverview(thread),
-    (await thread.fetchStarterMessage())
-      .edit({ embeds: [generateInfoEmbed(gameObject.players, gameObject.creator, gameObject.startTime)] })
-  ]);
+  if (shouldUpdateOverview)
+    await Promise.all([
+      updateOverview(thread),
+      (
+        await thread.fetchStarterMessage()
+      ).edit({
+        embeds: [generateInfoEmbed(gameObject.players, gameObject.creator, gameObject.startTime)],
+      }),
+    ]);
 
   if (gameObject.players.length === 0) {
     await thread.send({
-      embeds: [
-        new MessageEmbed(BASE_EMB).setDescription("😕 " + lang.allPlayersLeft)
-      ]
+      embeds: [new MessageEmbed(BASE_EMB).setDescription("😕 " + lang.allPlayersLeft)],
     });
     await endGame(thread); //! dont acces the thread now - it's archived!
   } else if (gameObject.players.length === 1 && gameMemberLeft) {
     const winningPlayer = (await thread.members.fetch(gameObject.players[0])).user;
     if (!winningPlayer) return;
-    await thread.send({ embeds: [new MessageEmbed(WIN_EMBED).setAuthor(lang.congrats.replace("{0}", await getGuildNickname(winningPlayer, thread.guild)))] });
+    await thread.send({
+      embeds: [
+        new MessageEmbed(WIN_EMBED).setAuthor(
+          lang.congrats.replace("{0}", await getGuildNickname(winningPlayer, thread.guild))
+        ),
+      ],
+    });
     await endGame(thread);
   }
 }
 
-function generateInfoEmbed(playerIds: string[], creator: string, startTime: number, duration?: number) {
+function generateInfoEmbed(
+  playerIds: string[],
+  creator: string,
+  startTime: number,
+  duration?: number
+) {
   const infoEmbed = new MessageEmbed(JOIN_GAME_EMBED)
     .setAuthor(lang.gameStartedBy.replace("{0}", creator))
-    .addField(lang.players + ":", playerIds.length > 0 ? playerIds.map(id => `<@${id}>`).join(", ") : "∅", true)
-    .addField(lang.start + ":", startTime === -1 ? lang.startOnFirstCard : `<t:${Math.round(startTime / 1000)}:R>`, true);
+    .addField(
+      lang.players + ":",
+      playerIds.length > 0 ? playerIds.map(id => `<@${id}>`).join(", ") : "∅",
+      true
+    )
+    .addField(
+      lang.start + ":",
+      startTime === -1 ? lang.startOnFirstCard : `<t:${Math.round(startTime / 1000)}:R>`,
+      true
+    );
 
   if (duration) {
     const durationDate = new Date(duration);
-    infoEmbed.addField(lang.duration + ":", durationDate.toLocaleTimeString("default", {
-      hour12: false,
-      minute: "2-digit",
-      second: "2-digit",
-      timeZone: "GMT",
-    }), true);
+    infoEmbed.addField(
+      lang.duration + ":",
+      durationDate.toLocaleTimeString("default", {
+        hour12: false,
+        minute: "2-digit",
+        second: "2-digit",
+        timeZone: "GMT",
+      }),
+      true
+    );
   }
 
   return infoEmbed;
@@ -208,7 +267,11 @@ function generateInfoEmbed(playerIds: string[], creator: string, startTime: numb
 function getAllUnoCards() {
   const allCards: UnoCard[] = [];
   for (let color = 0; color <= 4; color++) {
-    for (let type = color !== UnoColor.BLACK ? 0 : 13; type <= (color !== UnoColor.BLACK ? 12 : 14); type++) {
+    for (
+      let type = color !== UnoColor.BLACK ? 0 : 13;
+      type <= (color !== UnoColor.BLACK ? 12 : 14);
+      type++
+    ) {
       allCards.push({ color, type }, { color, type });
       if (type > 12) {
         allCards.push({ color, type }, { color, type });
@@ -237,13 +300,14 @@ async function getGuildNickname(user: User, guild: Guild | undefined | null) {
 }
 
 async function overviewFromGameData(data: RunningGame, client: Client, guild: Guild) {
-
   return generateOverview({
     playedCards: data.gameState.lastPlayedCards,
-    players: await Promise.all(data.players.map(async plId => ({
-      cardsLeft: data.gameState.handCards[plId]?.length || 0,
-      name: (await getGuildNickname(await client.users.fetch(plId), guild)),
-    }))),
+    players: await Promise.all(
+      data.players.map(async plId => ({
+        cardsLeft: data.gameState.handCards[plId]?.length || 0,
+        name: await getGuildNickname(await client.users.fetch(plId), guild),
+      }))
+    ),
     playingDirection: data.gameState.playingDirection,
     upNow: data.gameState.upNow,
   });
@@ -266,12 +330,21 @@ export async function updateOverview(thread: ThreadChannel) {
   const gameObject = runningGames.find(gme => gme.threadId === thread.id);
   if (!gameObject) return;
 
-  const overviewFile = new MessageAttachment((await overviewFromGameData(gameObject, thread.client, thread.guild)).toBuffer("image/png"), "overview.png");
+  const overviewFile = new MessageAttachment(
+    (await overviewFromGameData(gameObject, thread.client, thread.guild)).toBuffer("image/png"),
+    "overview.png"
+  );
   if (gameObject.overviewMessageId) {
-    await thread.messages.fetch(gameObject.overviewMessageId).then(async msg => await msg.delete()).catch();
+    await thread.messages
+      .fetch(gameObject.overviewMessageId)
+      .then(async msg => await msg.delete().catch())
+      .catch();
   }
 
-  const newMessage = await thread.send({ files: [overviewFile], components: INGAME_COMPONENTS });
+  const newMessage = await thread.send({
+    files: [overviewFile],
+    components: INGAME_COMPONENTS,
+  });
   gameObject.overviewMessageId = newMessage.id;
 }
 
@@ -279,16 +352,23 @@ export async function updateHandCards(interaction: MessageComponentInteraction) 
   const gameObject = runningGames.find(gme => gme.threadId === interaction.channelId);
   if (!gameObject) return;
 
-  const needsToDrawCards = gameObject.players[gameObject.gameState.upNow] === interaction.user.id && gameObject.gameState.cardsToTake > 0;
+  const needsToDrawCards =
+    gameObject.players[gameObject.gameState.upNow] === interaction.user.id &&
+    gameObject.gameState.cardsToTake > 0;
   if (needsToDrawCards) {
-    gameObject.gameState.handCards[interaction.user.id].push(...takeRandomCards(gameObject.gameState.cardsToTake, gameObject.gameState.cardsInStack, getAllUnoCards)); //? "null pointer"
+    gameObject.gameState.handCards[interaction.user.id].push(
+      ...takeRandomCards(
+        gameObject.gameState.cardsToTake,
+        gameObject.gameState.cardsInStack,
+        getAllUnoCards
+      )
+    ); //? "null pointer"
     gameObject.gameState.cardsToTake = 0;
   }
 
   const cards = getHandCardsForPlayer(interaction.user.id, interaction.channelId);
   if (!cards) return;
-  cards.sort((a, b) => (a.color - b.color) !== 0 ? a.color - b.color : a.type - b.type);
-
+  cards.sort((a, b) => (a.color - b.color !== 0 ? a.color - b.color : a.type - b.type));
 
   if (cards.length === 0) return;
 
@@ -298,51 +378,78 @@ export async function updateHandCards(interaction: MessageComponentInteraction) 
   );
 
   const cardSelector = new MessageActionRow().addComponents(
-    new MessageSelectMenu().setCustomId("uno-placecard").setPlaceholder(lang.placeCard).addOptions(
-      cards.map((card, i): MessageSelectOptionData[] => {
-        if (i !== cards.findIndex(card1 => card1.type === card.type && card1.color === card.color)) {
-          return [];
-        }
-        if (card.color === UnoColor.BLACK) {
-          const colorOptions: MessageSelectOptionData[] = [];
-          for (let c = 0; c < 4; c++) {
-            colorOptions.push({
-              label: `${unoColorEmojis[card.color]}: ${unoTypeNames[card.type]}, ${lang.choose}: ${unoColorEmojis[c as UnoColor]}`,
-              value: `${String(i)}_${c}`
-            });
-          }
-          return colorOptions;
-        } else {
-          return [{
-            label: `${unoColorEmojis[card.color]}: ${unoTypeNames[card.type]}`,
-            value: `${String(i)}_${card.color}`,
-          }];
-        }
-      }).reduce((acc, cur) => acc.concat(cur), [])
-    ),
+    new MessageSelectMenu()
+      .setCustomId("uno-placecard")
+      .setPlaceholder(lang.placeCard)
+      .addOptions(
+        cards
+          .map((card, i): MessageSelectOptionData[] => {
+            if (
+              i !== cards.findIndex(card1 => card1.type === card.type && card1.color === card.color)
+            ) {
+              return [];
+            }
+            if (card.color === UnoColor.BLACK) {
+              const colorOptions: MessageSelectOptionData[] = [];
+              for (let c = 0; c < 4; c++) {
+                colorOptions.push({
+                  label: `${unoColorEmojis[card.color]}: ${unoTypeNames[card.type]}, ${
+                    lang.choose
+                  }: ${unoColorEmojis[c as UnoColor]}`,
+                  value: `${String(i)}_${c}`,
+                });
+              }
+              return colorOptions;
+            } else {
+              return [
+                {
+                  label: `${unoColorEmojis[card.color]}: ${unoTypeNames[card.type]}`,
+                  value: `${String(i)}_${card.color}`,
+                },
+              ];
+            }
+          })
+          .reduce((acc, cur) => acc.concat(cur), [])
+      )
   );
 
-  gameObject.gameState.cardDisplayIds[interaction.user.id] = (await interaction.editReply({ files: [cardsFile], components: [cardSelector, ...HAND_CARD_COMPONENTS] })).id;
+  gameObject.gameState.cardDisplayIds[interaction.user.id] = (
+    await interaction.editReply({
+      files: [cardsFile],
+      components: [cardSelector, ...HAND_CARD_COMPONENTS],
+    })
+  ).id;
 
-  if (needsToDrawCards && interaction.channel instanceof ThreadChannel) await updateOverview(interaction.channel);
+  if (needsToDrawCards && interaction.channel instanceof ThreadChannel)
+    await updateOverview(interaction.channel);
 }
 
 async function endGame(gameThread: ThreadChannel) {
   const gameObjectIndex = runningGames.findIndex(gme => gme.threadId === gameThread.id);
   const gameObject = runningGames[gameObjectIndex];
-  const endMessage = generateInfoEmbed(gameObject.players, gameObject.creator, gameObject.startTime, (gameObject.startTime === -1 ? 0 : Date.now() - gameObject.startTime));
+  const endMessage = generateInfoEmbed(
+    gameObject.players,
+    gameObject.creator,
+    gameObject.startTime,
+    gameObject.startTime === -1 ? 0 : Date.now() - gameObject.startTime
+  );
   await gameThread.send({ embeds: [endMessage] });
   const startMessage = await gameThread.fetchStarterMessage();
   await gameThread.setArchived(true);
 
   runningGames.splice(gameObjectIndex, 1);
-  setTimeout(() => { //* not async/awaited
+  setTimeout(() => {
+    //* not async/awaited
     startMessage.delete().catch(() => console.debug("could not delete starter message"));
   }, 180e3);
 }
 
 //TODO respond to interaction with overview
-export async function playCard(interaction: MessageComponentInteraction, cardIndex: number, cardColor?: UnoColor) {
+export async function playCard(
+  interaction: MessageComponentInteraction,
+  cardIndex: number,
+  cardColor?: UnoColor
+) {
   const gameObject = runningGames.find(gme => gme.threadId === interaction.channelId);
   if (!gameObject || !interaction.channel?.isThread()) return;
 
@@ -351,7 +458,9 @@ export async function playCard(interaction: MessageComponentInteraction, cardInd
     gameObject.startTime = Date.now();
     // show that the game has started
     interaction.channel.fetchStarterMessage().then(starterMessage => {
-      starterMessage.edit({ embeds: [generateInfoEmbed(gameObject.players, gameObject.creator, gameObject.startTime)] });
+      starterMessage.edit({
+        embeds: [generateInfoEmbed(gameObject.players, gameObject.creator, gameObject.startTime)],
+      });
     });
   }
 
@@ -374,7 +483,13 @@ export async function playCard(interaction: MessageComponentInteraction, cardInd
     await interaction.editReply({ content: lang.callUnoBeforePlaying });
     gameObject.gameState.waitingForUno = true;
 
-    const callCollector = await (interaction.message as Message).awaitMessageComponent({ componentType: "BUTTON", filter: c => c.customId === "uno-calluno", time: 10e3 }).catch(() => false as const);
+    const callCollector = await (interaction.message as Message)
+      .awaitMessageComponent({
+        componentType: "BUTTON",
+        filter: c => c.customId === "uno-calluno",
+        time: 10e3,
+      })
+      .catch(() => false as const);
     if (!callCollector) {
       // player didn't call uno
       handCards.push(...takeRandomCards(2, gameObject.gameState.cardsInStack, getAllUnoCards));
@@ -385,7 +500,13 @@ export async function playCard(interaction: MessageComponentInteraction, cardInd
     //TODO end game
     await updateOverview(interaction.channel);
     await interaction.editReply(lang.youWin);
-    await interaction.followUp({ embeds: [new MessageEmbed(WIN_EMBED).setAuthor(lang.congrats.replace("{0}", await getGuildNickname(interaction.user, interaction.guild)))] });
+    await interaction.followUp({
+      embeds: [
+        new MessageEmbed(WIN_EMBED).setAuthor(
+          lang.congrats.replace("{0}", await getGuildNickname(interaction.user, interaction.guild))
+        ),
+      ],
+    });
     if (interaction.channel.isThread()) {
       endGame(interaction.channel);
     }
@@ -417,12 +538,28 @@ export async function playCard(interaction: MessageComponentInteraction, cardInd
     }
     case UnoType.DRAW_TWO: {
       gameObject.gameState.cardsToTake += 2;
-      await interaction.channel.send({ embeds: [new MessageEmbed(BASE_EMB).setDescription(lang.drawCards.replace("{0}", nextPlayerId).replace("{1}", gameObject.gameState.cardsToTake.toFixed()))] });
+      await interaction.channel.send({
+        embeds: [
+          new MessageEmbed(BASE_EMB).setDescription(
+            lang.drawCards
+              .replace("{0}", nextPlayerId)
+              .replace("{1}", gameObject.gameState.cardsToTake.toFixed())
+          ),
+        ],
+      });
       break;
     }
     case UnoType.WILD_DRAW_FOUR: {
-      gameObject.gameState.handCards[nextPlayerId].push(...takeRandomCards(4, gameObject.gameState.cardsInStack, getAllUnoCards)); //? "null pointer" 
-      await interaction.channel.send({ embeds: [new MessageEmbed(BASE_EMB).setDescription(lang.drawCardsFour.replace("{0}", nextPlayerId))] });
+      gameObject.gameState.handCards[nextPlayerId].push(
+        ...takeRandomCards(4, gameObject.gameState.cardsInStack, getAllUnoCards)
+      ); //? "null pointer"
+      await interaction.channel.send({
+        embeds: [
+          new MessageEmbed(BASE_EMB).setDescription(
+            lang.drawCardsFour.replace("{0}", nextPlayerId)
+          ),
+        ],
+      });
       break;
     }
   }
@@ -435,29 +572,54 @@ export function giveCardsToPlayer(playerId: string, thread: ThreadChannel, count
   const gameObject = runningGames.find(gme => gme.threadId === thread.id);
   if (!gameObject) return;
 
-  gameObject.gameState.handCards[playerId].push(...takeRandomCards(count, gameObject.gameState.cardsInStack, getAllUnoCards)); //? "null pointer"
+  gameObject.gameState.handCards[playerId].push(
+    ...takeRandomCards(count, gameObject.gameState.cardsInStack, getAllUnoCards)
+  ); //? "null pointer"
   if (!gameObject.gameState.cardsTaken[playerId]) gameObject.gameState.cardsTaken[playerId] = 0;
   gameObject.gameState.cardsTaken[playerId] += count;
 }
 
-export function isAllowedToPlay(interaction: MessageComponentInteraction, skipUnoWait: boolean = false) {
+export function isAllowedToPlay(
+  interaction: MessageComponentInteraction,
+  skipUnoWait: boolean = false
+) {
   // needs to be a thread
-  if (!isGameThread(interaction.channelId) || !interaction.channel?.isThread()) return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setFooter(lang.gameNotActive)], ephemeral: true });
+  if (!isGameThread(interaction.channelId) || !interaction.channel?.isThread())
+    return interaction.reply({
+      embeds: [new MessageEmbed(ERR_BASE).setFooter(lang.gameNotActive)],
+      ephemeral: true,
+    });
 
   const game = getGameFromThread(interaction.channelId);
   if (!game) return;
   const { gameState, players } = game;
   // nedds to be in the game
-  if (!players.includes(interaction.user.id)) return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setFooter(lang.gameNotPlaying)], ephemeral: true });
+  if (!players.includes(interaction.user.id))
+    return interaction.reply({
+      embeds: [new MessageEmbed(ERR_BASE).setFooter(lang.gameNotPlaying)],
+      ephemeral: true,
+    });
 
   // needs to be the next player
-  if (players[gameState.upNow] !== interaction.user.id) return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setDescription(lang.notYourTurn)], ephemeral: true });
+  if (players[gameState.upNow] !== interaction.user.id)
+    return interaction.reply({
+      embeds: [new MessageEmbed(ERR_BASE).setDescription(lang.notYourTurn)],
+      ephemeral: true,
+    });
   //? needs to have enough cards
   // not waiting for uno
-  if (!skipUnoWait && gameState.waitingForUno) return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setDescription(lang.needToCallUno)], ephemeral: true });
+  if (!skipUnoWait && gameState.waitingForUno)
+    return interaction.reply({
+      embeds: [new MessageEmbed(ERR_BASE).setDescription(lang.needToCallUno)],
+      ephemeral: true,
+    });
 
   // latest card message
-  if (gameState.cardDisplayIds[interaction.user.id] !== interaction.message.id) return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setFooter(lang.cardsOutdated)], ephemeral: true });
+  if (gameState.cardDisplayIds[interaction.user.id] !== interaction.message.id)
+    return interaction.reply({
+      embeds: [new MessageEmbed(ERR_BASE).setFooter(lang.cardsOutdated)],
+      ephemeral: true,
+    });
   return true;
 }
 

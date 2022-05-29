@@ -12,8 +12,7 @@ const commands: SlashCommandBuilder[] = [];
 
 //* COMMANDS
 export async function registerCommands(statusMessage: boolean = true) {
-
-  const rest = new REST({ version: '9' }).setToken(token);
+  const rest = new REST({ version: "9" }).setToken(token);
 
   //* GUILD COMMANDS
   /*
@@ -36,40 +35,48 @@ export async function registerCommands(statusMessage: boolean = true) {
   */
 
   //* GLOBAL COMMANDS
-  await rest.put(process.env.NODE_ENV === "DEV" ?
-    Routes.applicationGuildCommands(clientId, devServerId) : Routes.applicationCommands(clientId),
-    { body: commands.map(cmd => cmd.toJSON()) }
-  ).catch(err => {
-    console.error("Error with global command registration: \n", err);
-  });
+  await rest
+    .put(
+      process.env.NODE_ENV === "DEV"
+        ? Routes.applicationGuildCommands(clientId, devServerId)
+        : Routes.applicationCommands(clientId),
+      { body: commands.map(cmd => cmd.toJSON()) }
+    )
+    .catch(err => {
+      console.error("Error with global command registration: \n", err);
+    });
 
-  if (statusMessage) console.log(
-    "Registered",
-    commands.length,
-    "commands on all guilds and global commands",
-    process.env.NODE_ENV === "DEV" ? "on the dev server" : "globally");
+  if (statusMessage)
+    console.log(
+      "Registered",
+      commands.length,
+      "commands on all guilds and global commands",
+      process.env.NODE_ENV === "DEV" ? "on the dev server" : "globally"
+    );
 }
 
 //* INTERACTIONS
 export async function handleInteraction(interaction: Interaction) {
   switch (interaction.type) {
     case "APPLICATION_COMMAND": {
-
       if (!interaction.isCommand()) break;
 
       await Promise.all(
-        listeners.filter(i => i.name === interaction.commandName && i.accepts.includes("APPLICATION_COMMAND"))
+        listeners
+          .filter(
+            i => i.name === interaction.commandName && i.accepts.includes("APPLICATION_COMMAND")
+          )
           .map(async i => await i.listener(interaction))
       );
 
       break;
     }
     case "MESSAGE_COMPONENT": {
-
       if (!interaction.isMessageComponent()) break;
 
       await Promise.all(
-        listeners.filter(i => i.name === interaction.customId && i.accepts.includes("MESSAGE_COMPONENT"))
+        listeners
+          .filter(i => i.name === interaction.customId && i.accepts.includes("MESSAGE_COMPONENT"))
           .map(async i => await i.listener(interaction))
       );
 
@@ -86,10 +93,12 @@ export async function handleInteraction(interaction: Interaction) {
 export async function loadInteractions(folderPath: string = "build/interactions") {
   const fullPath = pathUtils.resolve(folderPath);
 
-  const fileNames = await readdir(fullPath).catch(() => {
-    console.error("Error loading interactions from", folderPath, "-", fullPath);
-    return [];
-  }).then(arr => arr.filter(p => p.endsWith(".js")));
+  const fileNames = await readdir(fullPath)
+    .catch(() => {
+      console.error("Error loading interactions from", folderPath, "-", fullPath);
+      return [];
+    })
+    .then(arr => arr.filter(p => p.endsWith(".js")));
 
   await Promise.all(
     fileNames.map(async path => {
@@ -98,20 +107,26 @@ export async function loadInteractions(folderPath: string = "build/interactions"
       try {
         const module = await import(filePath);
         new module.default(); //? no TS! ;[
-
       } catch (err) {
         console.error("Error while loading class in", filePath);
       }
     })
   );
 
-  console.log("Loaded", commands.length, "command(s) &", listeners.length, "listener(s) from", fileNames.length, "file(s)!");
+  console.log(
+    "Loaded",
+    commands.length,
+    "command(s) &",
+    listeners.length,
+    "listener(s) from",
+    fileNames.length,
+    "file(s)!"
+  );
 }
 
 //* DECORATORS
 export function interactionListener(interName: string, accepts?: InteractionType): MethodDecorator {
   return (obj, symbol, _descriptor) => {
-
     listeners.push({
       name: interName,
       accepts: accepts ? [accepts] : ["APPLICATION_COMMAND", "MESSAGE_COMPONENT"],
@@ -124,9 +139,11 @@ export function commandStorage(debugCommands = false): MethodDecorator {
   return (obj, symbol) => {
     if (debugCommands && process.env.NODE_ENV !== "DEV") return;
     try {
-      commands.push(...((obj as any)[symbol]()));
+      commands.push(...(obj as any)[symbol]());
     } catch (error) {
-      console.error("A commandStorage isn't set up properly. Is the methods return type `SlashCommandBuilder[]`?");
+      console.error(
+        "A commandStorage isn't set up properly. Is the methods return type `SlashCommandBuilder[]`?"
+      );
     }
   };
 }

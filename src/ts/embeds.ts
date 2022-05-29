@@ -1,1 +1,1 @@
-export * from './embeds/de';
+export * from "./embeds/de";

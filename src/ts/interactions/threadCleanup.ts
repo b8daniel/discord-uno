@@ -3,8 +3,10 @@ import { CommandInteraction, MessageEmbed } from "discord.js";
 import { BASE_EMB } from "../embeds";
 import { commandStorage, interactionListener } from "../interactions";
 
+/**
+ * @deprecated for now
+ */
 export default class ThreadCleanupCommand {
-
   @interactionListener("threadcleanup", "APPLICATION_COMMAND")
   onThreadCleanup(interaction: CommandInteraction) {
     interaction.guild?.channels.cache.map(channel => {
@@ -12,13 +14,22 @@ export default class ThreadCleanupCommand {
         channel.delete();
       }
     });
-    interaction.reply({ embeds: [new MessageEmbed(BASE_EMB).setDescription("cleaning up the threads? (not workin dont't worry bout it)")], ephemeral: true });
+    interaction.reply({
+      embeds: [
+        new MessageEmbed(BASE_EMB).setDescription(
+          "cleaning up the threads? (not workin dont't worry bout it)"
+        ),
+      ],
+      ephemeral: true,
+    });
   }
 
   @commandStorage(true)
   commands(): SlashCommandBuilder[] {
     return [
-      new SlashCommandBuilder().setName("threadcleanup").setDescription("removes archived game threads"),
+      new SlashCommandBuilder()
+        .setName("threadcleanup")
+        .setDescription("removes archived game threads"),
     ];
   }
 }

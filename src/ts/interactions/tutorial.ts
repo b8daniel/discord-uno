@@ -1,22 +1,27 @@
 import { SlashCommandBuilder } from "@discordjs/builders";
-import { CommandInteraction, MessageActionRow, MessageButton, MessageComponentInteraction, Permissions } from "discord.js";
+import {
+  CommandInteraction,
+  MessageActionRow,
+  MessageButton,
+  MessageComponentInteraction,
+  Permissions,
+} from "discord.js";
 import { ERR_ONLY_IN_GUILD, TUTORIAL_EMBED_ADMIN, TUTORIAL_EMBED_USER } from "../embeds";
 import { commandStorage, interactionListener } from "../interactions";
 import { lang } from "../lang";
 
 export default class TutorialCommand {
-
   @interactionListener("tutorial", "APPLICATION_COMMAND")
   async onTutorialCommand(interaction: CommandInteraction) {
-    if (!interaction.inGuild()) return interaction.reply({ embeds: [ERR_ONLY_IN_GUILD], ephemeral: true });
-    const row = new MessageActionRow()
-      .addComponents(
-        new MessageButton()
-          .setCustomId("tutorial-yes")
-          .setLabel(randomItem(positiveWords))
-          .setStyle("SUCCESS")
-          .setEmoji(randomItem(positiveEmojis))
-      );
+    if (!interaction.inGuild())
+      return interaction.reply({ embeds: [ERR_ONLY_IN_GUILD], ephemeral: true });
+    const row = new MessageActionRow().addComponents(
+      new MessageButton()
+        .setCustomId("tutorial-yes")
+        .setLabel(randomItem(positiveWords))
+        .setStyle("SUCCESS")
+        .setEmoji(randomItem(positiveEmojis))
+    );
     await interaction.reply({ embeds: [TUTORIAL_EMBED_USER], ephemeral: true, components: [row] });
     if (interaction.memberPermissions?.has(Permissions.FLAGS.ADMINISTRATOR)) {
       await interaction.followUp({ embeds: [TUTORIAL_EMBED_ADMIN], ephemeral: true });
@@ -25,14 +30,15 @@ export default class TutorialCommand {
 
   @interactionListener("tutorial-yes", "MESSAGE_COMPONENT")
   onButtonInteract(interaction: MessageComponentInteraction) {
-    interaction.reply({ content: `${randomItem(positiveWords).toLocaleUpperCase()}! ${randomItem(positiveEmojis)}`, ephemeral: true });
+    interaction.reply({
+      content: `${randomItem(positiveWords).toLocaleUpperCase()}! ${randomItem(positiveEmojis)}`,
+      ephemeral: true,
+    });
   }
 
   @commandStorage()
   commands() {
-    return [
-      new SlashCommandBuilder().setName("tutorial").setDescription(lang.cmdTutorialDesc)
-    ];
+    return [new SlashCommandBuilder().setName("tutorial").setDescription(lang.cmdTutorialDesc)];
   }
 }
 

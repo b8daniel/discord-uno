@@ -12,8 +12,6 @@ export default class InviteCommand {
 
   @commandStorage()
   commands() {
-    return [
-      new SlashCommandBuilder().setName("invite").setDescription(lang.cmdInviteDesc)
-    ];
+    return [new SlashCommandBuilder().setName("invite").setDescription(lang.cmdInviteDesc)];
   }
 }

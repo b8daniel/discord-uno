@@ -4,7 +4,6 @@ import { generateCards, generateOverview, UnoColor, UnoType } from "../images";
 import { commandStorage, interactionListener } from "../interactions";
 
 export default class CanvasCommand {
-
   @interactionListener("canvas", "APPLICATION_COMMAND")
   async onCommand(interaction: CommandInteraction) {
     await interaction.deferReply();
@@ -14,15 +13,15 @@ export default class CanvasCommand {
           playedCards: [
             {
               type: UnoType.ONE,
-              color: UnoColor.RED
+              color: UnoColor.RED,
             },
             {
               type: UnoType.NINE,
-              color: UnoColor.GREEN
+              color: UnoColor.GREEN,
             },
             {
               type: UnoType.ONE,
-              color: UnoColor.BLUE
+              color: UnoColor.BLUE,
             },
           ],
           players: [
@@ -48,10 +47,13 @@ export default class CanvasCommand {
             },
           ],
           playingDirection: 1,
-          upNow: 2
+          upNow: 2,
         });
 
-        const overviewPng = new MessageAttachment(generatedCanvas.toBuffer("image/png"), "overview.png");
+        const overviewPng = new MessageAttachment(
+          generatedCanvas.toBuffer("image/png"),
+          "overview.png"
+        );
 
         await interaction.editReply({ files: [overviewPng] });
         break;
@@ -65,13 +67,11 @@ export default class CanvasCommand {
           {
             color: UnoColor.BLACK,
             type: UnoType.WILD_DRAW_FOUR,
-          }
+          },
         ]);
 
         interaction.editReply({
-          files: [
-            new MessageAttachment(generatedCanvas.toBuffer(), "cards.png")
-          ]
+          files: [new MessageAttachment(generatedCanvas.toBuffer(), "cards.png")],
         });
       }
     }
@@ -80,9 +80,13 @@ export default class CanvasCommand {
   @commandStorage(true)
   commands() {
     return [
-      new SlashCommandBuilder().setName("canvas").setDescription("test out canvas functionality")
-        .addSubcommand(cmd => cmd.setName("overview").setDescription("generate a test overview of a state"))
-        .addSubcommand(cmd => cmd.setName("cards").setDescription("gives a test card overview"))
+      new SlashCommandBuilder()
+        .setName("canvas")
+        .setDescription("test out canvas functionality")
+        .addSubcommand(cmd =>
+          cmd.setName("overview").setDescription("generate a test overview of a state")
+        )
+        .addSubcommand(cmd => cmd.setName("cards").setDescription("gives a test card overview")),
     ];
   }
 }
