@@ -120,6 +120,7 @@ export async function generateOverview(params: OverviewData) {
         ((height - 2 * padding) / Math.floor(arr.length / 2)) *
           (i - Math.ceil(arr.length / 2) + 0.5) +
         padding;
+      baseY = height - baseY; // start from the bottom
 
       const textWidth = Math.min(ctx.measureText(pl.name).width, maxFontWidth);
       ctx.fillText(pl.name, widht - padding - textWidth, baseY + fontSize / 2, maxFontWidth); // player name
