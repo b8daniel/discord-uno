@@ -1,5 +1,6 @@
 import {
   ButtonInteraction,
+  GuildMember,
   GuildMemberRoleManager,
   Message,
   MessageEmbed,
@@ -48,20 +49,24 @@ export default class UNOButtons {
   @interactionListener("uno-creategame-notify", "MESSAGE_COMPONENT")
   async wantsToToggleNotified(interaction: ButtonInteraction) {
     const role = interaction.guild?.roles.resolve(notifyRoleId);
-    if (!role)
+    const member = interaction.member;
+
+    if (!(member instanceof GuildMember)) return;
+    if (!role) {
       return interaction.reply({
         embeds: [new MessageEmbed(ERR_BASE).setDescription(lang.roleNotFound)],
         ephemeral: true,
       });
+    }
 
     if (role.members.has(interaction.user.id)) {
-      await (interaction.member.roles as GuildMemberRoleManager).remove(role);
+      await (member.roles as GuildMemberRoleManager).remove(role);
       return interaction.reply({
         embeds: [new MessageEmbed(BASE_EMB).setDescription(lang.notifyOff)],
         ephemeral: true,
       });
     } else {
-      await (interaction.member.roles as GuildMemberRoleManager).add(role);
+      await (member.roles as GuildMemberRoleManager).add(role);
       return interaction.reply({
         embeds: [new MessageEmbed(BASE_EMB).setDescription(lang.notifyOn)],
         ephemeral: true,

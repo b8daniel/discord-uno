@@ -19,37 +19,25 @@ export default class AdminCommand {
 
     switch (interaction.options.getSubcommand()) {
       case "gamechannel": {
-        const newChannel = interaction.options.getChannel("gamechannel");
-        if (!newChannel) return interaction.reply({ embeds: [ERR_BASE], ephemeral: true });
-        /*
-        const unoConfigId = await getUnoConfigId(interaction.guildId);
+        const gameChannel = interaction.options.getChannel("gamechannel");
+        if (!gameChannel) return interaction.reply({ embeds: [ERR_BASE], ephemeral: true });
 
-        if (!unoConfigId) return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setFooter("guild not found in db")], ephemeral: true });
-
-        await prisma.unoConfig.update({
-          where: {
-            id: unoConfigId,
-          },
-          data: {
-            unoChannelId: newChannel.id
-          }
-        });
-
-        */
-        interaction.reply({
-          embeds: [BASE_EMB.setDescription(lang.gameChannelUpdate.replace("{0}", newChannel.id))],
-          ephemeral: true,
-        });
-        if (!(newChannel instanceof TextChannel))
+        if (!(gameChannel instanceof TextChannel))
           return interaction.reply({
             embeds: [
-              new MessageEmbed(ERR_BASE).setFooter(
+              new MessageEmbed(ERR_BASE).setDescription(
                 "specified channel is not instanceof TextChannel"
               ),
             ],
             ephemeral: true,
           });
-        newChannel
+
+        interaction.reply({
+          embeds: [BASE_EMB.setDescription(lang.gameChannelUpdate.replace("{0}", gameChannel.id))],
+          ephemeral: true,
+        });
+
+        gameChannel
           .send({ embeds: [GAME_CONTROLS], components: GAME_CONTROL_COMPONENTS })
           .then(msg => msg.pin())
           .catch(e => {
@@ -60,29 +48,6 @@ export default class AdminCommand {
           });
         break;
       }
-      /*
-      case "unoping": {
-
-        const newRole = interaction.options.getRole("unoping");
-
-        const unoConfigId = await getUnoConfigId(interaction.guildId);
-
-        if (!unoConfigId) return interaction.reply({ embeds: [new MessageEmbed(ERR_BASE).setFooter("guild not found in db")], ephemeral: false });
-
-        await prisma.unoConfig.update({
-          where: {
-            id: unoConfigId,
-          },
-          data: {
-            matchRoleId: newRole.id,
-          }
-        });
-
-        interaction.reply({ embeds: [new MessageEmbed(BASE_EMB).setDescription(`Updated unoping to <@&${newRole.id}>`)], ephemeral: true });
-
-        break;
-      }
-      */
     }
   }
 
@@ -105,10 +70,6 @@ export default class AdminCommand {
                 .setRequired(true)
             )
         ),
-
-      /*.addSubcommand(cmd => cmd.setName("unoping").setDescription("Select the role to be pinged if someone is looking to play UNO")
-        .addRoleOption(op => op.setName("unoping").setDescription("This role will be pinged when someone is lokking for a game").setRequired(true)))
-        */
     ];
   }
 }
